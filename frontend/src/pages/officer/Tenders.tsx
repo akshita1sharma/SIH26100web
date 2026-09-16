@@ -1,145 +1,108 @@
-const Tenders = ({
-  tenders,
-  setActivePage,
-}: {
+type TendersProps = {
   tenders: any[];
-  setActivePage: (page: string) => void;
-}) => {
+  setActivePage?: (page: string) => void;
+};
 
-  const openTenders = tenders.filter(
-    (tender) => tender.status === "OPEN"
+const Tenders = ({ tenders }: TendersProps) => {
+
+  const open = tenders.filter(
+    (t) => t.status === "OPEN"
   ).length;
 
-  const closedTenders = tenders.filter(
-    (tender) => tender.status !== "OPEN"
-  ).length;
+  const closed = tenders.length - open;
 
   return (
     <div className="space-y-6">
 
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+
         <div>
-          <p className="text-sm font-medium text-blue-600">
-            PROCUREMENT MANAGEMENT
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">
+            Procurement Management
           </p>
 
-          <h2 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
             Tenders
-          </h2>
+          </h1>
 
-          <p className="mt-1 text-slate-500">
-            Manage and review GeM procurement tenders
+          <p className="mt-1 text-sm text-slate-500">
+            Manage and monitor GeM procurement tenders.
           </p>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <p className="text-xs text-slate-400">
-            TOTAL TENDERS
-          </p>
+        <button className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700">
+          + Add Tender
+        </button>
 
-          <p className="mt-1 text-xl font-bold text-slate-900">
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Total Tenders
+          </p>
+          <p className="mt-2 text-3xl font-bold text-slate-950">
             {tenders.length}
           </p>
         </div>
-      </div>
 
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-
-        <div className="rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-          <div className="flex items-center gap-4">
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl">
-              ◫
-            </div>
-
-            <div>
-              <p className="text-sm text-slate-500">
-                Total Tenders
-              </p>
-
-              <p className="mt-1 text-2xl font-bold">
-                {tenders.length}
-              </p>
-            </div>
-
-          </div>
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
+            Active
+          </p>
+          <p className="mt-2 text-3xl font-bold text-emerald-700">
+            {open}
+          </p>
         </div>
 
-
-        <div className="rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-          <div className="flex items-center gap-4">
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl">
-              ✓
-            </div>
-
-            <div>
-              <p className="text-sm text-slate-500">
-                Open Tenders
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-green-600">
-                {openTenders}
-              </p>
-            </div>
-
-          </div>
-        </div>
-
-
-        <div className="rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-          <div className="flex items-center gap-4">
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-xl">
-              ◷
-            </div>
-
-            <div>
-              <p className="text-sm text-slate-500">
-                Closed Tenders
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-slate-600">
-                {closedTenders}
-              </p>
-            </div>
-
-          </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Closed / Other
+          </p>
+          <p className="mt-2 text-3xl font-bold text-slate-700">
+            {closed}
+          </p>
         </div>
 
       </div>
 
+      {/* Table */}
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-      {/* Tender List */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-
-        <div className="flex flex-col gap-2 border-b border-slate-100 p-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 border-b border-slate-100 p-5 md:flex-row md:items-center md:justify-between">
 
           <div>
-            <h3 className="text-xl font-bold text-slate-900">
+            <h2 className="font-bold text-slate-950">
               Tender List
-            </h3>
+            </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Active procurement opportunities and submission deadlines
+            <p className="mt-1 text-xs text-slate-400">
+              {tenders.length} tender(s) found
             </p>
           </div>
 
-          <span className="w-fit rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-600">
-            {tenders.length} tender(s)
-          </span>
+          <div className="flex gap-2">
+
+            <input
+              placeholder="Search tenders..."
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 md:w-64"
+            />
+
+            <button className="rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-600">
+              Filter
+            </button>
+
+          </div>
 
         </div>
 
-
         {tenders.length === 0 ? (
+          <div className="px-6 py-16 text-center">
 
-          <div className="p-12 text-center">
-
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-xl">
               ◫
             </div>
 
@@ -148,171 +111,113 @@ const Tenders = ({
             </p>
 
             <p className="mt-1 text-sm text-slate-400">
-              No procurement tenders are currently available.
+              Create or import a tender to get started.
             </p>
 
           </div>
-
         ) : (
 
-          <div className="divide-y divide-slate-100">
+          <div className="overflow-x-auto">
 
-            {tenders.map((tender) => (
+            <table className="w-full min-w-[800px]">
 
-              <div
-                key={tender.id}
-                className="p-6 transition hover:bg-slate-50"
-              >
+              <thead className="bg-slate-50">
+                <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
 
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                  <th className="px-6 py-4">
+                    Tender
+                  </th>
 
-                  {/* Tender Info */}
-                  <div className="flex gap-4">
+                  <th className="px-6 py-4">
+                    Description
+                  </th>
 
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-lg font-bold text-blue-600">
-                      T
-                    </div>
+                  <th className="px-6 py-4">
+                    Deadline
+                  </th>
 
-                    <div>
+                  <th className="px-6 py-4">
+                    Status
+                  </th>
 
-                      <div className="flex flex-wrap items-center gap-3">
+                  <th className="px-6 py-4 text-right">
+                    Action
+                  </th>
 
-                        <h4 className="text-lg font-bold text-slate-900">
-                          {tender.tender_number}
-                        </h4>
+                </tr>
+              </thead>
 
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            tender.status === "OPEN"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {tender.status}
-                        </span>
+              <tbody className="divide-y divide-slate-100">
 
-                      </div>
+                {tenders.map((tender) => (
 
-                      <p className="mt-2 text-base font-medium text-slate-700">
+                  <tr
+                    key={tender.id}
+                    className="transition hover:bg-slate-50"
+                  >
+
+                    <td className="px-6 py-5">
+
+                      <p className="font-semibold text-slate-800">
+                        {tender.tender_number}
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
                         {tender.title}
                       </p>
 
-                      <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-                        {tender.description}
+                    </td>
+
+                    <td className="max-w-xs px-6 py-5">
+
+                      <p className="truncate text-sm text-slate-500">
+                        {tender.description || "—"}
                       </p>
 
-                    </div>
+                    </td>
 
-                  </div>
+                    <td className="px-6 py-5 text-sm text-slate-600">
+                      {tender.submission_deadline || "—"}
+                    </td>
 
+                    <td className="px-6 py-5">
 
-                  {/* Deadline */}
-                  <div className="min-w-[220px] rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                          tender.status === "OPEN"
+                            ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 bg-slate-50 text-slate-600"
+                        }`}
+                      >
+                        {tender.status}
+                      </span>
 
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Submission Deadline
-                    </p>
+                    </td>
 
-                    <p className="mt-2 text-sm font-bold text-slate-800">
-                      {tender.submission_deadline
-                        ? new Date(
-                            tender.submission_deadline
-                          ).toLocaleString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "Not specified"}
-                    </p>
+                    <td className="px-6 py-5 text-right">
 
-                    <p className="mt-1 text-xs text-slate-400">
-                      Tender submission closing time
-                    </p>
+                      <button className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                        View
+                      </button>
 
-                  </div>
+                    </td>
 
-                </div>
+                  </tr>
 
+                ))}
 
-                {/* Bottom Information */}
-                <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5">
+              </tbody>
 
-                  <div className="rounded-lg bg-slate-100 px-3 py-2">
-                    <span className="text-xs text-slate-400">
-                      Tender ID
-                    </span>
-
-                    <span className="ml-2 text-xs font-semibold text-slate-700">
-                      {tender.id}
-                    </span>
-                  </div>
-
-
-                  <div className="rounded-lg bg-blue-50 px-3 py-2">
-                    <span className="text-xs text-blue-500">
-                      Procurement
-                    </span>
-
-                    <span className="ml-2 text-xs font-semibold text-blue-700">
-                      GeM
-                    </span>
-                  </div>
-
-
-                  <div className="ml-auto">
-
-                    <button
-                      onClick={() => setActivePage("Bidders")}
-                      className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
-                    >
-                      View Bidders →
-                    </button>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            ))}
+            </table>
 
           </div>
 
         )}
 
-      </div>
-
-
-      {/* Officer Notice */}
-      <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
-
-        <div className="flex gap-3">
-
-          <div className="mt-0.5 text-lg">
-            ℹ️
-          </div>
-
-          <div>
-
-            <p className="font-semibold text-blue-900">
-              Tender Compliance Workflow
-            </p>
-
-            <p className="mt-1 text-sm leading-6 text-blue-700">
-              Select a tender, review registered bidders and run
-              document-level compliance verification before procurement
-              evaluation.
-            </p>
-
-          </div>
-
-        </div>
-
-      </div>
+      </section>
 
     </div>
   );
 };
+
 export default Tenders;

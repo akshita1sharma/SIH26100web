@@ -2,424 +2,408 @@ type DashboardProps = {
   tenders: any[];
   bidders: any[];
   verificationResults: any[];
-  documents: any[];
   setActivePage: (page: string) => void;
 };
 
-function Dashboard({
+const Dashboard = ({
   tenders,
   bidders,
   verificationResults,
-  documents,
   setActivePage,
-}: DashboardProps) {
-  const compliant = verificationResults.filter(
-    (result) => result.verification_status === "VALID"
+}: DashboardProps) => {
+
+  const valid = verificationResults.filter(
+    (r) => r.verification_status === "VALID"
   ).length;
 
-  const needsReview = verificationResults.filter(
-    (result) => result.verification_status === "NEEDS_REVIEW"
+  const review = verificationResults.filter(
+    (r) => r.verification_status === "NEEDS_REVIEW"
   ).length;
 
-  const nonCompliant = verificationResults.filter(
-    (result) => result.verification_status === "INVALID"
+  const invalid = verificationResults.filter(
+    (r) => r.verification_status === "INVALID"
   ).length;
 
-  const totalResults =
-    compliant + needsReview + nonCompliant;
+  const highRisk = verificationResults.filter(
+    (r) =>
+      r.risk_level === "HIGH" ||
+      r.risk_level === "CRITICAL"
+  ).length;
 
-  const complianceRate =
+  const totalResults = verificationResults.length;
+
+  const compliancePercent =
     totalResults > 0
-      ? Math.round((compliant / totalResults) * 100)
+      ? Math.round((valid / totalResults) * 100)
       : 0;
 
-  const riskHigh = verificationResults.filter(
-    (result) =>
-      result.risk_level === "HIGH" ||
-      result.risk_level === "CRITICAL"
-  ).length;
+  const recentResults = [...verificationResults]
+    .slice(-5)
+    .reverse();
 
-  const recentResults = verificationResults
-    .filter((result) => result.score !== null)
-    .slice(0, 5);
+  const statCards = [
+    {
+      title: "Active Tenders",
+      value: tenders.filter((t) => t.status === "OPEN").length,
+      subtitle: "Currently accepting bids",
+      icon: "◫",
+      accent: "blue",
+    },
+    {
+      title: "Registered Bidders",
+      value: bidders.length,
+      subtitle: "Organizations in system",
+      icon: "♙",
+      accent: "violet",
+    },
+    {
+      title: "Verified Documents",
+      value: verificationResults.length,
+      subtitle: "Processed by verification engine",
+      icon: "✓",
+      accent: "emerald",
+    },
+    {
+      title: "High Risk Cases",
+      value: highRisk,
+      subtitle: "Require officer attention",
+      icon: "!",
+      accent: "rose",
+    },
+  ];
+
+  const accentStyles: Record<string, string> = {
+    blue: "bg-blue-50 text-blue-600",
+    violet: "bg-violet-50 text-violet-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+    rose: "bg-rose-50 text-rose-600",
+  };
+
+  const statusClass = (status: string) => {
+    if (status === "VALID")
+      return "bg-emerald-50 text-emerald-700 border-emerald-100";
+
+    if (status === "NEEDS_REVIEW")
+      return "bg-amber-50 text-amber-700 border-amber-100";
+
+    return "bg-rose-50 text-rose-700 border-rose-100";
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen space-y-7 pb-10">
 
       {/* Header */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
         <div>
-          <p className="text-sm font-medium text-blue-600">
-            PROCUREMENT CONTROL CENTER
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">
+            Procurement Control Center
           </p>
 
-          <h2 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
             Compliance Dashboard
-          </h2>
+          </h1>
 
-          <p className="mt-1 text-slate-500">
-            Monitor tenders, bidders and AI-powered compliance verification
+          <p className="mt-1 text-sm text-slate-500">
+            Monitor tenders, bidders and AI-assisted compliance verification.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-          <span className="text-sm font-medium text-slate-600">
-            System Operational
-          </span>
-        </div>
-      </div>
+        <div className="flex items-center gap-3">
 
+          <button className="hidden rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm md:block">
+            Today
+          </button>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-
-        <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl">
-              ◫
-            </div>
-
-            <span className="text-xs font-semibold text-blue-600">
-              ACTIVE
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <span className="text-sm font-medium text-slate-700">
+              System Operational
             </span>
           </div>
 
-          <p className="mt-5 text-sm text-slate-500">
-            Active Tenders
-          </p>
-
-          <p className="mt-1 text-3xl font-bold">
-            {tenders.length}
-          </p>
-
-          <p className="mt-2 text-xs text-slate-400">
-            Procurement opportunities currently open
-          </p>
         </div>
+      </header>
 
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-        <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-xl">
-              ♙
+        {statCards.map((card) => (
+          <div
+            key={card.title}
+            className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between">
+
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg font-bold ${accentStyles[card.accent]}`}
+              >
+                {card.icon}
+              </div>
+
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Live
+              </span>
+
             </div>
 
-            <span className="text-xs font-semibold text-violet-600">
-              REGISTERED
-            </span>
+            <p className="mt-5 text-sm text-slate-500">
+              {card.title}
+            </p>
+
+            <p className="mt-1 text-3xl font-bold tracking-tight text-slate-950">
+              {card.value}
+            </p>
+
+            <p className="mt-1 text-xs text-slate-400">
+              {card.subtitle}
+            </p>
           </div>
-
-          <p className="mt-5 text-sm text-slate-500">
-            Total Bidders
-          </p>
-
-          <p className="mt-1 text-3xl font-bold">
-            {bidders.length}
-          </p>
-
-          <p className="mt-2 text-xs text-slate-400">
-            Bidders registered for verification
-          </p>
-        </div>
-
-
-        <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-xl">
-              ✓
-            </div>
-
-            <span className="text-xs font-semibold text-green-600">
-              VERIFIED
-            </span>
-          </div>
-
-          <p className="mt-5 text-sm text-slate-500">
-            Documents Verified
-          </p>
-
-          <p className="mt-1 text-3xl font-bold">
-            {
-              verificationResults.filter(
-                (result) => result.score !== null
-              ).length
-            }
-          </p>
-
-          <p className="mt-2 text-xs text-slate-400">
-            Documents processed by verification engine
-          </p>
-        </div>
-
-
-        <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-xl">
-              ⚠
-            </div>
-
-            <span className="text-xs font-semibold text-red-600">
-              ATTENTION
-            </span>
-          </div>
-
-          <p className="mt-5 text-sm text-slate-500">
-            High Risk Cases
-          </p>
-
-          <p className="mt-1 text-3xl font-bold text-red-600">
-            {riskHigh}
-          </p>
-
-          <p className="mt-2 text-xs text-slate-400">
-            Require procurement officer attention
-          </p>
-        </div>
+        ))}
 
       </div>
 
+      {/* Main analytics */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.65fr_0.85fr]">
 
-      {/* Compliance Overview */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Compliance */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
-        <div className="rounded-2xl bg-white p-6 shadow-sm lg:col-span-2">
+          <div className="flex items-start justify-between">
 
-          <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold">
+              <h2 className="text-lg font-bold text-slate-950">
                 Compliance Overview
-              </h3>
+              </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Current verification distribution
+                Current verification distribution across submitted documents.
               </p>
             </div>
 
-            <div className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold">
-              {complianceRate}% valid
-            </div>
-          </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-2 text-right">
+              <p className="text-xs text-slate-400">
+                Valid rate
+              </p>
 
-
-          <div className="mt-7 space-y-5">
-
-            <div>
-              <div className="mb-2 flex justify-between text-sm">
-                <span className="font-medium text-slate-600">
-                  Compliant
-                </span>
-
-                <span className="font-semibold text-green-600">
-                  {compliant}
-                </span>
-              </div>
-
-              <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-green-500"
-                  style={{
-                    width: `${
-                      totalResults
-                        ? (compliant / totalResults) * 100
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-
-
-            <div>
-              <div className="mb-2 flex justify-between text-sm">
-                <span className="font-medium text-slate-600">
-                  Needs Review
-                </span>
-
-                <span className="font-semibold text-yellow-600">
-                  {needsReview}
-                </span>
-              </div>
-
-              <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-yellow-400"
-                  style={{
-                    width: `${
-                      totalResults
-                        ? (needsReview / totalResults) * 100
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-
-
-            <div>
-              <div className="mb-2 flex justify-between text-sm">
-                <span className="font-medium text-slate-600">
-                  Non-Compliant
-                </span>
-
-                <span className="font-semibold text-red-600">
-                  {nonCompliant}
-                </span>
-              </div>
-
-              <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-red-500"
-                  style={{
-                    width: `${
-                      totalResults
-                        ? (nonCompliant / totalResults) * 100
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
+              <p className="text-lg font-bold text-slate-900">
+                {compliancePercent}%
+              </p>
             </div>
 
           </div>
-        </div>
 
+          <div className="mt-7 space-y-6">
 
-        {/* Verification Health */}
-        <div className="rounded-2xl bg-slate-900 p-6 text-white shadow-sm">
+            {[
+              {
+                label: "Compliant",
+                value: valid,
+                percent:
+                  totalResults > 0
+                    ? (valid / totalResults) * 100
+                    : 0,
+                text: "text-emerald-600",
+                bar: "bg-emerald-500",
+              },
+              {
+                label: "Needs Review",
+                value: review,
+                percent:
+                  totalResults > 0
+                    ? (review / totalResults) * 100
+                    : 0,
+                text: "text-amber-600",
+                bar: "bg-amber-400",
+              },
+              {
+                label: "Non-Compliant",
+                value: invalid,
+                percent:
+                  totalResults > 0
+                    ? (invalid / totalResults) * 100
+                    : 0,
+                text: "text-rose-600",
+                bar: "bg-rose-500",
+              },
+            ].map((item) => (
+              <div key={item.label}>
 
-          <p className="text-sm font-medium text-slate-400">
-            Verification Health
-          </p>
+                <div className="mb-2 flex justify-between text-sm">
+                  <span className="font-medium text-slate-600">
+                    {item.label}
+                  </span>
 
-          <h3 className="mt-2 text-2xl font-bold">
-            {complianceRate >= 80
-              ? "Healthy"
-              : complianceRate >= 50
-              ? "Needs Attention"
-              : "Critical"}
-          </h3>
+                  <span className={`font-bold ${item.text}`}>
+                    {item.value}
+                  </span>
+                </div>
 
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Based on the current distribution of bidder
-            verification results.
-          </p>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={`h-full rounded-full transition-all ${item.bar}`}
+                    style={{
+                      width: `${item.percent}%`,
+                    }}
+                  />
+                </div>
 
-          <div className="mt-7 border-t border-slate-700 pt-5">
+              </div>
+            ))}
 
-            <div className="flex justify-between">
+          </div>
+
+        </section>
+
+        {/* Health */}
+        <section className="rounded-2xl bg-[#0b1730] p-6 text-white shadow-xl">
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-blue-200">
+              Verification Health
+            </p>
+
+            <span className="rounded-lg bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase">
+              Live
+            </span>
+          </div>
+
+          <div className="mt-7">
+
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/15 text-2xl">
+              ✓
+            </div>
+
+            <h2 className="mt-5 text-2xl font-bold">
+              {totalResults === 0
+                ? "No Data"
+                : highRisk > 0
+                ? "Attention Required"
+                : "Healthy"}
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Based on the current distribution of bidder verification results.
+            </p>
+
+          </div>
+
+          <div className="mt-7 border-t border-white/10 pt-5">
+
+            <div className="flex justify-between py-2">
               <span className="text-sm text-slate-400">
                 Verified Results
               </span>
 
-              <span className="font-semibold">
-                {totalResults}
+              <span className="font-bold">
+                {valid}
               </span>
             </div>
 
-            <div className="mt-4 flex justify-between">
+            <div className="flex justify-between py-2">
+              <span className="text-sm text-slate-400">
+                Needs Review
+              </span>
+
+              <span className="font-bold text-amber-400">
+                {review}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-2">
               <span className="text-sm text-slate-400">
                 High Risk
               </span>
 
-              <span className="font-semibold text-red-400">
-                {riskHigh}
+              <span className="font-bold text-rose-400">
+                {highRisk}
               </span>
             </div>
 
           </div>
-        </div>
+
+        </section>
 
       </div>
 
+      {/* Bottom */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.5fr_1fr]">
 
-      {/* Recent Verification */}
-      <div className="rounded-2xl bg-white shadow-sm">
+        {/* Recent activity */}
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-        <div className="flex items-center justify-between border-b border-slate-100 p-6">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
 
-          <div>
-            <h3 className="text-lg font-bold">
-              Recent Verification Activity
-            </h3>
+            <div>
+              <h2 className="text-lg font-bold text-slate-950">
+                Recent Verification Activity
+              </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Latest processed compliance documents
-            </p>
+              <p className="mt-1 text-xs text-slate-400">
+                Latest document verification results
+              </p>
+            </div>
+
+            <button
+              onClick={() => setActivePage("Documents")}
+              className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-600 transition hover:bg-blue-100"
+            >
+              View All
+            </button>
+
           </div>
 
-          <button
-            onClick={() => setActivePage("Verification")}
-            className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-100"
-          >
-            View All
-          </button>
+          {recentResults.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-xl">
+                ▤
+              </div>
 
-        </div>
+              <p className="mt-3 text-sm font-semibold text-slate-700">
+                No verification activity
+              </p>
 
+              <p className="mt-1 text-xs text-slate-400">
+                Verification results will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
 
-        {recentResults.length === 0 ? (
-          <div className="p-8 text-center text-slate-500">
-            No verification activity available.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-
-            {recentResults.map((result: any) => {
-
-              const document = documents.find(
-                (item) =>
-                  String(item.id) ===
-                  String(result.document_id)
-              );
-
-              return (
+              {recentResults.map((result, index) => (
                 <div
-                  key={result.id}
-                  className="flex flex-col gap-4 p-5 transition hover:bg-slate-50 md:flex-row md:items-center md:justify-between"
+                  key={result.id ?? index}
+                  className="flex items-center justify-between px-6 py-4 transition hover:bg-slate-50"
                 >
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
 
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
-                      📄
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold text-slate-600">
+                      {String(result.document_id || "D").slice(0, 1)}
                     </div>
 
-                    <div>
-                      <p className="font-semibold">
-                        {document?.file_name ||
-                          `Document #${result.document_id}`}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-800">
+                        Document #{result.document_id}
                       </p>
 
-                      <p className="mt-1 text-xs text-slate-400">
-                        {document?.document_type ||
-                          "Verification"}
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        Verification result #{result.id}
                       </p>
                     </div>
 
                   </div>
 
+                  <div className="flex items-center gap-4">
 
-                  <div className="flex items-center gap-6">
-
-                    <div>
-                      <p className="text-xs text-slate-400">
-                        SCORE
-                      </p>
-
-                      <p className="mt-1 font-semibold">
-                        {result.score}
-                      </p>
-                    </div>
+                    <span className="hidden text-sm font-bold text-slate-700 sm:block">
+                      {result.score ?? "—"}
+                    </span>
 
                     <span
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        result.verification_status === "VALID"
-                          ? "bg-green-100 text-green-700"
-                          : result.verification_status === "NEEDS_REVIEW"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
+                      className={`rounded-full border px-3 py-1 text-[10px] font-bold ${statusClass(
+                        result.verification_status
+                      )}`}
                     >
                       {result.verification_status}
                     </span>
@@ -427,71 +411,103 @@ function Dashboard({
                   </div>
 
                 </div>
-              );
-            })}
-
-          </div>
-        )}
-
-      </div>
-
-
-      {/* Verification Modules */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm">
-
-        <div className="mb-5">
-
-          <h3 className="text-lg font-bold">
-            Verification Modules
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Automated compliance checks supported by GeM Verify
-          </p>
-
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-
-          {[
-            "GST",
-            "PAN",
-            "Udyam / MSME",
-            "Income Tax",
-            "EPFO / ESIC",
-            "Startup India",
-            "Make in India",
-            "OEM Authorization",
-          ].map((module) => (
-
-            <div
-              key={module}
-              className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-300 hover:bg-blue-50"
-            >
-
-              <div className="flex items-center justify-between">
-
-                <p className="text-sm font-semibold">
-                  {module}
-                </p>
-
-                <span className="h-2 w-2 rounded-full bg-green-500" />
-
-              </div>
-
-              <p className="mt-2 text-xs text-slate-400">
-                Verification module
-              </p>
+              ))}
 
             </div>
+          )}
 
-          ))}
+        </section>
 
-        </div>
+        {/* Quick actions */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+          <h2 className="text-lg font-bold text-slate-950">
+            Quick Actions
+          </h2>
+
+          <p className="mt-1 text-xs text-slate-400">
+            Common procurement workflows
+          </p>
+
+          <div className="mt-5 space-y-3">
+
+            <button
+              onClick={() => setActivePage("Verification")}
+              className="flex w-full items-center gap-4 rounded-xl border border-slate-200 p-4 text-left transition hover:border-blue-200 hover:bg-blue-50"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                ✓
+              </span>
+
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Review Verification
+                </p>
+
+                <p className="text-xs text-slate-400">
+                  Inspect bidder compliance
+                </p>
+              </div>
+
+              <span className="ml-auto text-slate-300">
+                →
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActivePage("Bidders")}
+              className="flex w-full items-center gap-4 rounded-xl border border-slate-200 p-4 text-left transition hover:border-violet-200 hover:bg-violet-50"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                ♙
+              </span>
+
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  View Bidders
+                </p>
+
+                <p className="text-xs text-slate-400">
+                  Manage registered bidders
+                </p>
+              </div>
+
+              <span className="ml-auto text-slate-300">
+                →
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActivePage("Tenders")}
+              className="flex w-full items-center gap-4 rounded-xl border border-slate-200 p-4 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                ◫
+              </span>
+
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Manage Tenders
+                </p>
+
+                <p className="text-xs text-slate-400">
+                  Review procurement opportunities
+                </p>
+              </div>
+
+              <span className="ml-auto text-slate-300">
+                →
+              </span>
+            </button>
+
+          </div>
+
+        </section>
+
       </div>
 
     </div>
   );
-}
+};
 
 export default Dashboard;
