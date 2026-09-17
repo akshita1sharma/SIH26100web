@@ -9,31 +9,92 @@ const Register = ({
   onRegisterSuccess,
   onBackToLogin,
 }: RegisterProps) => {
-  const [role, setRole] = useState<"bidder" | "officer">("bidder");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [role, setRole] = useState<"bidder" | "officer">(
+    "bidder"
+  );
+
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     organization: "",
+    department: "",
     phone: "",
     password: "",
     confirmPassword: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // =========================================
+  // INPUT CHANGE
+  // =========================================
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // =========================================
+  // ROLE CHANGE
+  // =========================================
+
+  const handleRoleChange = (
+    selectedRole: "bidder" | "officer"
+  ) => {
+    setRole(selectedRole);
+
+    // Clear role-specific field
+    if (selectedRole === "bidder") {
+      setFormData((prev) => ({
+        ...prev,
+        department: "",
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        organization: "",
+      }));
+    }
+  };
+
+  // =========================================
+  // SUBMIT
+  // =========================================
+
+  const handleSubmit = (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
+    if (
+      formData.password !==
+      formData.confirmPassword
+    ) {
       alert("Passwords do not match.");
+      return;
+    }
+
+    if (
+      role === "bidder" &&
+      !formData.organization.trim()
+    ) {
+      alert("Please enter your organization name.");
+      return;
+    }
+
+    if (
+      role === "officer" &&
+      !formData.department.trim()
+    ) {
+      alert("Please enter your department.");
       return;
     }
 
@@ -43,10 +104,15 @@ const Register = ({
 
   return (
     <div className="min-h-screen bg-slate-950">
+
       <div className="grid min-h-screen lg:grid-cols-2">
 
-        {/* LEFT SIDE */}
+        {/* =====================================
+            LEFT SIDE
+        ===================================== */}
+
         <div className="relative hidden overflow-hidden lg:flex">
+
           <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-900 to-slate-950" />
 
           <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blue-500/20 blur-2xl" />
@@ -56,7 +122,9 @@ const Register = ({
           <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-16">
 
             {/* Logo */}
+
             <div className="flex items-center gap-4">
+
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl font-black text-blue-700 shadow-xl">
                 G
               </div>
@@ -70,37 +138,49 @@ const Register = ({
                   Bid Compliance Platform
                 </p>
               </div>
+
             </div>
 
             {/* Main Content */}
+
             <div className="max-w-xl">
 
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-blue-100 backdrop-blur">
+
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
+
                 Join the Platform
+
               </div>
 
               <h2 className="text-5xl font-bold leading-tight text-white xl:text-6xl">
+
                 Build Trust.
+
                 <span className="block text-blue-300">
                   Bid Smarter.
                 </span>
+
               </h2>
 
               <p className="mt-6 max-w-lg text-base leading-7 text-slate-300">
-                Create your GeM Verify account and simplify document
-                compliance, bid verification and procurement workflows.
+                Create your GeM Verify account and simplify
+                document compliance, bid verification and
+                procurement workflows.
               </p>
 
               {/* Features */}
+
               <div className="mt-10 space-y-4">
 
                 <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-xl text-white">
                     ✓
                   </div>
 
                   <div>
+
                     <p className="font-semibold text-white">
                       Secure Registration
                     </p>
@@ -108,15 +188,19 @@ const Register = ({
                     <p className="text-xs text-slate-300">
                       Protected account and compliance data
                     </p>
+
                   </div>
+
                 </div>
 
                 <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-xl text-white">
                     ◈
                   </div>
 
                   <div>
+
                     <p className="font-semibold text-white">
                       AI-Assisted Verification
                     </p>
@@ -124,24 +208,33 @@ const Register = ({
                     <p className="text-xs text-slate-300">
                       Faster document and compliance checks
                     </p>
+
                   </div>
+
                 </div>
 
               </div>
+
             </div>
 
             <p className="text-xs text-slate-400">
               SIH26100 • GeM Compliance Platform
             </p>
+
           </div>
+
         </div>
 
-        {/* RIGHT SIDE */}
+        {/* =====================================
+            RIGHT SIDE
+        ===================================== */}
+
         <div className="flex items-center justify-center overflow-y-auto bg-slate-50 px-5 py-10 sm:px-8">
 
           <div className="w-full max-w-lg">
 
             {/* Mobile Logo */}
+
             <div className="mb-8 flex items-center gap-3 lg:hidden">
 
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 font-bold text-white">
@@ -149,6 +242,7 @@ const Register = ({
               </div>
 
               <div>
+
                 <p className="font-bold text-slate-900">
                   GeM Verify
                 </p>
@@ -156,11 +250,13 @@ const Register = ({
                 <p className="text-xs text-slate-500">
                   Bid Compliance Platform
                 </p>
+
               </div>
 
             </div>
 
             {/* Heading */}
+
             <div className="mb-7">
 
               <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">
@@ -168,16 +264,17 @@ const Register = ({
               </p>
 
               <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-                Get started with GeM Verify
+                Create Your Account
               </h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                Create your account to access the compliance portal.
+                Join GeM Verify and get started today.
               </p>
 
             </div>
 
             {/* Card */}
+
             <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/50 sm:p-8">
 
               <form
@@ -185,48 +282,66 @@ const Register = ({
                 className="space-y-5"
               >
 
-                {/* Role */}
+                {/* =================================
+                    ROLE
+                ================================= */}
+
                 <div>
 
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Register as
+                    Select Role
                   </label>
 
                   <div className="grid grid-cols-2 gap-3">
 
-                    <button
-                      type="button"
-                      onClick={() => setRole("bidder")}
-                      className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                        role === "bidder"
-                          ? "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-100"
-                          : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      🏢 Bidder
-                    </button>
+                    {/* Bidder */}
 
                     <button
                       type="button"
-                      onClick={() => setRole("officer")}
+                      onClick={() =>
+                        handleRoleChange("bidder")
+                      }
                       className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                        role === "officer"
-                          ? "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-100"
-                          : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        role === "bidder"
+                          ? "border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                       }`}
                     >
-                      🛡️ Officer
+                      👤 Bidder
+                    </button>
+
+                    {/* Procurement Officer */}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleRoleChange("officer")
+                      }
+                      className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                        role === "officer"
+                          ? "border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      💼 Procurement Officer
                     </button>
 
                   </div>
+
                 </div>
 
-                {/* Name + Phone */}
+                {/* =================================
+                    FULL NAME + EMAIL
+                ================================= */}
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
+                  {/* Full Name */}
+
                   <div>
+
                     <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      Full name
+                      Full Name
                     </label>
 
                     <input
@@ -234,69 +349,145 @@ const Register = ({
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      placeholder="Enter your name"
+                      placeholder="Enter your full name"
                       required
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
                     />
+
                   </div>
 
+                  {/* Email */}
+
                   <div>
+
                     <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      Phone number
+                      Email Address
                     </label>
 
                     <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
+                      type="email"
+                      name="email"
+                      value={formData.email}
                       onChange={handleChange}
-                      placeholder="Enter phone number"
+                      placeholder="Enter your email"
                       required
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
                     />
+
                   </div>
 
                 </div>
 
-                {/* Email */}
-                <div>
+                {/* =================================
+                    BIDDER:
+                    ORGANIZATION + PHONE
+                ================================= */}
 
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Email address
-                  </label>
+                {role === "bidder" && (
 
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="you@example.com"
-                    required
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                  />
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                </div>
+                    {/* Organization */}
 
-                {/* Organization */}
-                <div>
+                    <div>
 
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Organization / Company
-                  </label>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">
+                        Organization Name
+                      </label>
 
-                  <input
-                    type="text"
-                    name="organization"
-                    value={formData.organization}
-                    onChange={handleChange}
-                    placeholder="Enter organization name"
-                    required
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                  />
+                      <input
+                        type="text"
+                        name="organization"
+                        value={formData.organization}
+                        onChange={handleChange}
+                        placeholder="Enter organization name"
+                        required
+                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      />
 
-                </div>
+                    </div>
 
-                {/* Password */}
+                    {/* Phone */}
+
+                    <div>
+
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">
+                        Phone Number
+                      </label>
+
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="+91 XXXXX XXXXX"
+                        required
+                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      />
+
+                    </div>
+
+                  </div>
+
+                )}
+
+                {/* =================================
+                    OFFICER:
+                    PHONE + DEPARTMENT
+                ================================= */}
+
+                {role === "officer" && (
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+                    {/* Phone */}
+
+                    <div>
+
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">
+                        Phone Number
+                      </label>
+
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="+91 XXXXX XXXXX"
+                        required
+                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      />
+
+                    </div>
+
+                    {/* Department */}
+
+                    <div>
+
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">
+                        Department
+                      </label>
+
+                      <input
+                        type="text"
+                        name="department"
+                        value={formData.department}
+                        onChange={handleChange}
+                        placeholder="Enter your department"
+                        required
+                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      />
+
+                    </div>
+
+                  </div>
+
+                )}
+
+                {/* =================================
+                    PASSWORD
+                ================================= */}
+
                 <div>
 
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -306,35 +497,68 @@ const Register = ({
                   <div className="relative">
 
                     <input
-                      type={showPassword ? "text" : "password"}
+                      type={
+                        showPassword
+                          ? "text"
+                          : "password"
+                      }
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="Create a password"
                       required
                       minLength={6}
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-20 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
                     />
 
                     <button
                       type="button"
                       onClick={() =>
-                        setShowPassword(!showPassword)
+                        setShowPassword(
+                          !showPassword
+                        )
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 hover:text-blue-600"
                     >
-                      {showPassword ? "Hide" : "Show"}
+                      {showPassword
+                        ? "Hide"
+                        : "Show"}
                     </button>
+
+                  </div>
+
+                  {/* Password requirements */}
+
+                  <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-slate-400">
+
+                    <span>
+                      ○ At least 6 characters
+                    </span>
+
+                    <span>
+                      ○ One lowercase letter
+                    </span>
+
+                    <span>
+                      ○ One uppercase letter
+                    </span>
+
+                    <span>
+                      ○ One number
+                    </span>
 
                   </div>
 
                 </div>
 
-                {/* Confirm Password */}
+                {/* =================================
+                    CONFIRM PASSWORD
+                ================================= */}
+
                 <div>
 
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Confirm password
+                    Confirm Password
                   </label>
 
                   <div className="relative">
@@ -351,7 +575,7 @@ const Register = ({
                       placeholder="Confirm your password"
                       required
                       minLength={6}
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-20 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
                     />
 
                     <button
@@ -372,7 +596,10 @@ const Register = ({
 
                 </div>
 
-                {/* Terms */}
+                {/* =================================
+                    TERMS
+                ================================= */}
+
                 <div className="flex items-start gap-3">
 
                   <input
@@ -382,23 +609,43 @@ const Register = ({
                   />
 
                   <p className="text-xs leading-5 text-slate-500">
-                    I agree to the platform terms and confirm that
-                    the information provided is accurate.
+
+                    I agree to the{" "}
+
+                    <span className="font-semibold text-blue-600">
+                      Terms of Service
+                    </span>{" "}
+
+                    and{" "}
+
+                    <span className="font-semibold text-blue-600">
+                      Privacy Policy
+                    </span>
+                    .
+
                   </p>
 
                 </div>
 
-                {/* Submit */}
+                {/* =================================
+                    SUBMIT
+                ================================= */}
+
                 <button
                   type="submit"
                   className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 hover:shadow-blue-600/30"
                 >
-                  Create Account →
+                  {role === "officer"
+                    ? "Create Officer Account →"
+                    : "Create Account →"}
                 </button>
 
               </form>
 
-              {/* Login */}
+              {/* =================================
+                  LOGIN
+              ================================= */}
+
               <div className="my-6 flex items-center gap-3">
 
                 <div className="h-px flex-1 bg-slate-200" />
@@ -426,8 +673,11 @@ const Register = ({
             </p>
 
           </div>
+
         </div>
+
       </div>
+
     </div>
   );
 };

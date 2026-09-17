@@ -1,41 +1,104 @@
-type DocumentsProps = {
-  documents: any[];
-  verificationResults: any[];
+import { useMemo, useState } from "react";
+
+type Props = {
+  documents?: any[];
+  verificationResults?: any[];
 };
 
-const Documents = ({
-  documents,
-  verificationResults,
-}: DocumentsProps) => {
+export default function Documents({
+  documents = [],
+  verificationResults = [],
+}: Props) {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("ALL");
+  const [type, setType] = useState("ALL");
 
-  const getResult = (documentId: number) =>
+  const getResult = (documentId: any) =>
     verificationResults.find(
-      (r) => Number(r.document_id) === Number(documentId)
+      (result) =>
+        String(result.document_id) ===
+        String(documentId)
     );
 
-  const statusClass = (status?: string) => {
+  const filteredDocuments = useMemo(() => {
+    return documents.filter((document) => {
 
-    if (status === "VALID")
-      return "bg-emerald-50 text-emerald-700 border-emerald-100";
+      const result = getResult(document.id);
 
-    if (status === "NEEDS_REVIEW")
-      return "bg-amber-50 text-amber-700 border-amber-100";
+      const text =
+        `${document.file_name || ""} ${
+          document.document_type || ""
+        } ${result?.verification_status || ""}`.toLowerCase();
 
-    if (status === "INVALID")
-      return "bg-rose-50 text-rose-700 border-rose-100";
+      const matchesSearch = text.includes(
+        search.toLowerCase()
+      );
 
-    return "bg-slate-50 text-slate-600 border-slate-200";
+      const resultStatus = String(
+        result?.verification_status ||
+          document.status ||
+          "PENDING"
+      ).toUpperCase();
+
+      const matchesStatus =
+        status === "ALL" || resultStatus === status;
+
+      const documentType = String(
+        document.document_type || "OTHER"
+      ).toUpperCase();
+
+      const matchesType =
+        type === "ALL" || documentType === type;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesType
+      );
+    });
+  }, [documents, verificationResults, search, status, type]);
+
+  const types = Array.from(
+    new Set(
+      documents.map((d) =>
+        String(d.document_type || "OTHER").toUpperCase()
+      )
+    )
+  );
+
+  const statusStyle = (value: string) => {
+    if (
+      ["VALID", "VERIFIED", "COMPLIANT"].includes(value)
+    ) {
+      return "bg-emerald-50 text-emerald-700";
+    }
+
+    if (
+      ["NEEDS_REVIEW", "UNDER_REVIEW", "REVIEW"].includes(
+        value
+      )
+    ) {
+      return "bg-amber-50 text-amber-700";
+    }
+
+    if (
+      ["INVALID", "NON_COMPLIANT", "FAILED"].includes(value)
+    ) {
+      return "bg-rose-50 text-rose-700";
+    }
+
+    return "bg-slate-100 text-slate-600";
   };
 
   return (
     <div className="space-y-6">
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">
-          Document Center
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
+          Document Management
         </p>
 
-        <h1 className="mt-2 text-3xl font-bold text-slate-950">
+        <h1 className="mt-2 text-3xl font-bold">
           Documents
         </h1>
 
@@ -44,135 +107,184 @@ const Documents = ({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
 
-        <button className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm">
-          All Documents
-        </button>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Total</p>
+          <p className="mt-2 text-3xl font-bold">
+            {documents.length}
+          </p>
+        </div>
 
-        <button className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600">
-          Verified
-        </button>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Verified</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-600">
+            {
+              verificationResults.filter((r) =>
+                ["VALID", "VERIFIED", "COMPLIANT"].includes(
+                  String(
+                    r.verification_status
+                  ).toUpperCase()
+                )
+              ).length
+            }
+          </p>
+        </div>
 
-        <button className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600">
-          Needs Review
-        </button>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">
+            Needs Review
+          </p>
+          <p className="mt-2 text-3xl font-bold text-amber-500">
+            {
+              verificationResults.filter((r) =>
+                ["NEEDS_REVIEW", "UNDER_REVIEW"].includes(
+                  String(
+                    r.verification_status
+                  ).toUpperCase()
+                )
+              ).length
+            }
+          </p>
+        </div>
 
-        <input
-          placeholder="Search documents..."
-          className="ml-auto rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500"
-        />
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">
+            High Risk
+          </p>
+          <p className="mt-2 text-3xl font-bold text-rose-600">
+            {
+              verificationResults.filter(
+                (r) =>
+                  String(r.risk_level).toUpperCase() ===
+                  "HIGH"
+              ).length
+            }
+          </p>
+        </div>
 
       </div>
 
+      {/* Main table */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-        <div className="border-b border-slate-100 px-6 py-5">
+        <div className="border-b border-slate-100 p-5">
 
-          <h2 className="font-bold">
-            Submitted Documents
-          </h2>
+          <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
 
-          <p className="mt-1 text-xs text-slate-400">
-            {documents.length} document(s) uploaded
-          </p>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search documents..."
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
+            />
 
-        </div>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
+            >
+              <option value="ALL">All Types</option>
 
-        {documents.length === 0 ? (
+              {types.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
 
-          <div className="px-6 py-16 text-center">
+            </select>
 
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-xl">
-              ▤
-            </div>
-
-            <p className="mt-4 font-semibold text-slate-700">
-              No documents uploaded
-            </p>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Uploaded bidder documents will appear here.
-            </p>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
+            >
+              <option value="ALL">All Status</option>
+              <option value="VALID">Valid</option>
+              <option value="NEEDS_REVIEW">
+                Needs Review
+              </option>
+              <option value="INVALID">Invalid</option>
+              <option value="PENDING">Pending</option>
+            </select>
 
           </div>
 
-        ) : (
+        </div>
 
-          <div className="overflow-x-auto">
+        <div className="overflow-x-auto">
 
-            <table className="w-full min-w-[900px]">
+          <table className="min-w-full text-left text-sm">
 
-              <thead className="bg-slate-50">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
 
-                <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <tr>
+                <th className="px-6 py-4">Document</th>
+                <th className="px-6 py-4">Type</th>
+                <th className="px-6 py-4">Bidder ID</th>
+                <th className="px-6 py-4">Score</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Risk</th>
+              </tr>
 
-                  <th className="px-6 py-4">
-                    Document
-                  </th>
+            </thead>
 
-                  <th className="px-6 py-4">
-                    Type
-                  </th>
+            <tbody className="divide-y divide-slate-100">
 
-                  <th className="px-6 py-4">
-                    Status
-                  </th>
+              {filteredDocuments.map(
+                (document, index) => {
 
-                  <th className="px-6 py-4">
-                    Score
-                  </th>
+                  const result = getResult(
+                    document.id
+                  );
 
-                  <th className="px-6 py-4">
-                    Risk
-                  </th>
-
-                  <th className="px-6 py-4 text-right">
-                    Action
-                  </th>
-
-                </tr>
-
-              </thead>
-
-              <tbody className="divide-y divide-slate-100">
-
-                {documents.map((document) => {
-
-                  const result = getResult(document.id);
+                  const resultStatus = String(
+                    result?.verification_status ||
+                      document.status ||
+                      "PENDING"
+                  ).toUpperCase();
 
                   return (
                     <tr
-                      key={document.id}
-                      className="transition hover:bg-slate-50"
+                      key={document.id || index}
+                      className="hover:bg-slate-50"
                     >
 
                       <td className="px-6 py-5">
 
-                        <div className="flex items-center gap-3">
+                        <p className="font-semibold text-slate-800">
+                          {document.file_name ||
+                            "Unnamed document"}
+                        </p>
 
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                            ▤
-                          </div>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Document #{document.id || "—"}
+                        </p>
 
-                          <div>
-                            <p className="font-semibold text-slate-800">
-                              {document.file_name}
-                            </p>
+                      </td>
 
-                            <p className="text-xs text-slate-400">
-                              Document #{document.id}
-                            </p>
-                          </div>
+                      <td className="px-6 py-5 text-slate-600">
+                        {document.document_type ||
+                          "OTHER"}
+                      </td>
 
-                        </div>
+                      <td className="px-6 py-5 text-slate-600">
+                        {document.bidder_id || "—"}
+                      </td>
 
+                      <td className="px-6 py-5 font-bold">
+                        {result?.score ?? "—"}
                       </td>
 
                       <td className="px-6 py-5">
 
-                        <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                          {document.document_type}
+                        <span
+                          className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusStyle(
+                            resultStatus
+                          )}`}
+                        >
+                          {resultStatus}
                         </span>
 
                       </td>
@@ -180,74 +292,43 @@ const Documents = ({
                       <td className="px-6 py-5">
 
                         <span
-                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
-                            result?.verification_status
-                          )}`}
+                          className={`font-semibold ${
+                            String(
+                              result?.risk_level
+                            ).toUpperCase() === "HIGH"
+                              ? "text-rose-600"
+                              : String(
+                                  result?.risk_level
+                                ).toUpperCase() ===
+                                "MEDIUM"
+                              ? "text-amber-600"
+                              : "text-emerald-600"
+                          }`}
                         >
-                          {result?.verification_status ||
-                            "NOT VERIFIED"}
+                          {result?.risk_level || "—"}
                         </span>
-
-                      </td>
-
-                      <td className="px-6 py-5 text-sm font-bold text-slate-700">
-                        {result?.score ?? "—"}
-                      </td>
-
-                      <td className="px-6 py-5 text-sm font-semibold">
-                        {result?.risk_level || "—"}
-                      </td>
-
-                      <td className="px-6 py-5 text-right">
-
-                        <button className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-                          View
-                        </button>
 
                       </td>
 
                     </tr>
                   );
+                }
+              )}
 
-                })}
+            </tbody>
 
-              </tbody>
+          </table>
 
-            </table>
+        </div>
 
+        {filteredDocuments.length === 0 && (
+          <div className="p-12 text-center text-sm text-slate-400">
+            No documents found.
           </div>
-
         )}
 
       </section>
 
-      {/* Notice */}
-      <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
-
-        <div className="flex gap-3">
-
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-            i
-          </div>
-
-          <div>
-            <p className="text-sm font-semibold text-blue-900">
-              Document Verification Notice
-            </p>
-
-            <p className="mt-1 text-sm leading-6 text-blue-800">
-              Documents are analyzed using OCR and automated compliance
-              checks. Flagged documents should be reviewed by the
-              Procurement Officer before final tender decisions.
-            </p>
-          </div>
-
-        </div>
-
-      </div>
-
     </div>
   );
-};
-
-export default Documents;
+}

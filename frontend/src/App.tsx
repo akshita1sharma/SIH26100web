@@ -5,33 +5,101 @@ import Tenders from "./pages/officer/Tenders";
 import Bidders from "./pages/officer/Bidders";
 import Documents from "./pages/officer/Documents";
 import Verification from "./pages/officer/Verification";
+import Reports from "./pages/officer/Reports";
+import ProfileSettings from "./pages/officer/ProfileSettings";
 
 import BidderDashboard from "./pages/bidder/BidderDashboard";
 import MyTenders from "./pages/bidder/MyTenders";
 import MyBids from "./pages/bidder/MyBids";
 import UploadDocuments from "./pages/bidder/UploadDocuments";
 import VerificationStatus from "./pages/bidder/VerificationStatus";
+import ProfileSettingsBidder from "./pages/bidder/ProfileSettingsBidder";
 
 import Login from "./auth/Login";
 import Register from "./auth/Register";
 
 import Sidebar from "./components/Sidebar";
+import Navbar from "./components/Navbar";
+
+type StoredUser = {
+  name?: string;
+  email?: string;
+  organization?: string;
+  phone?: string;
+  password?: string;
+  role?: "bidder" | "officer";
+};
 
 function App() {
-  const [activePage, setActivePage] = useState("Dashboard");
+  // =========================================
+  // CURRENT USER
+  // =========================================
 
-  const [role, setRole] = useState<"bidder" | "officer">("bidder");
+  const getStoredUser = (): StoredUser | null => {
+    try {
+      const storedUser =
+        localStorage.getItem(
+          "gem_verify_current_user"
+        );
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+      if (!storedUser) {
+        return null;
+      }
 
-  const [showRegister, setShowRegister] = useState(false);
+      return JSON.parse(storedUser);
+    } catch (error) {
+      console.error(
+        "Stored user error:",
+        error
+      );
 
-  const [tenders, setTenders] = useState<any[]>([]);
-  const [bidders, setBidders] = useState<any[]>([]);
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [selectedBidderId, setSelectedBidderId] = useState("4");
+      return null;
+    }
+  };
+
+  const storedUser = getStoredUser();
+
+  // =========================================
+  // STATE
+  // =========================================
+
+  const [activePage, setActivePage] =
+    useState("Dashboard");
+
+  const [role, setRole] =
+    useState<"bidder" | "officer">(
+      storedUser?.role || "bidder"
+    );
+
+  const [isAuthenticated, setIsAuthenticated] =
+    useState(
+      () =>
+        localStorage.getItem(
+          "gem_verify_current_user"
+        ) !== null
+    );
+
+  const [showRegister, setShowRegister] =
+    useState(false);
+
+  const [tenders, setTenders] =
+    useState<any[]>([]);
+
+  const [bidders, setBidders] =
+    useState<any[]>([]);
+
+  const [documents, setDocuments] =
+    useState<any[]>([]);
+
+  const [selectedBidderId, setSelectedBidderId] =
+    useState("4");
+
   const [verificationResults, setVerificationResults] =
     useState<any[]>([]);
+
+  // =========================================
+  // FETCH BACKEND DATA
+  // =========================================
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/tenders")
@@ -40,7 +108,10 @@ function App() {
         setTenders(data.tenders || []);
       })
       .catch((error) => {
-        console.error("Tenders fetch error:", error);
+        console.error(
+          "Tenders fetch error:",
+          error
+        );
       });
 
     fetch("http://127.0.0.1:8000/bidders")
@@ -49,7 +120,10 @@ function App() {
         setBidders(data.bidders || []);
       })
       .catch((error) => {
-        console.error("Bidders fetch error:", error);
+        console.error(
+          "Bidders fetch error:",
+          error
+        );
       });
 
     fetch("http://127.0.0.1:8000/documents")
@@ -58,10 +132,15 @@ function App() {
         setDocuments(data.documents || []);
       })
       .catch((error) => {
-        console.error("Documents fetch error:", error);
+        console.error(
+          "Documents fetch error:",
+          error
+        );
       });
 
-    fetch("http://127.0.0.1:8000/verification-results")
+    fetch(
+      "http://127.0.0.1:8000/verification-results"
+    )
       .then((res) => res.json())
       .then((data) => {
         setVerificationResults(
@@ -76,9 +155,45 @@ function App() {
       });
   }, []);
 
-  // -----------------------------
-  // LOGIN / REGISTER
-  // -----------------------------
+  // =========================================
+  // LOGIN
+  // =========================================
+
+  const handleLogin = (
+    selectedRole: "bidder" | "officer"
+  ) => {
+    setRole(selectedRole);
+
+    setActivePage("Dashboard");
+
+    setIsAuthenticated(true);
+  };
+
+  // =========================================
+  // LOGOUT
+  // =========================================
+
+  const handleLogout = () => {
+    localStorage.removeItem(
+      "gem_verify_current_user"
+    );
+
+    localStorage.removeItem(
+      "gem_verify_remember"
+    );
+
+    setIsAuthenticated(false);
+
+    setRole("bidder");
+
+    setActivePage("Dashboard");
+
+    setShowRegister(false);
+  };
+
+  // =========================================
+  // LOGIN / REGISTER SCREEN
+  // =========================================
 
   if (!isAuthenticated) {
     if (showRegister) {
@@ -96,11 +211,7 @@ function App() {
 
     return (
       <Login
-        onLogin={(selectedRole) => {
-          setRole(selectedRole);
-          setActivePage("Dashboard");
-          setIsAuthenticated(true);
-        }}
+        onLogin={handleLogin}
         onRegister={() => {
           setShowRegister(true);
         }}
@@ -108,12 +219,14 @@ function App() {
     );
   }
 
-  // -----------------------------
+  // =========================================
   // AUTHENTICATED APP
-  // -----------------------------
+  // =========================================
 
   return (
     <div className="min-h-screen bg-[#f6f8fc] text-slate-900">
+
+      {/* SIDEBAR */}
 
       <Sidebar
         role={role}
@@ -121,100 +234,163 @@ function App() {
         setActivePage={setActivePage}
       />
 
-      <main className="ml-64 min-h-screen p-7 lg:p-8">
+      {/* MAIN AREA */}
 
-        {/* ===================== */}
-        {/* BIDDER */}
-        {/* ===================== */}
+      <div className="ml-64">
 
-        {role === "bidder" &&
-          activePage === "Dashboard" && (
+        {/* COMMON NAVBAR */}
+
+        <Navbar
+          role={role}
+          setActivePage={setActivePage}
+          onLogout={handleLogout}
+        />
+
+        {/* PAGE CONTENT */}
+
+        <main className="p-8">
+
+          {/* =====================================
+              BIDDER ROUTES
+          ===================================== */}
+
+          {role === "bidder" &&
+          activePage === "Dashboard" ? (
+            <BidderDashboard
+              setActivePage={setActivePage}
+            />
+
+          ) : role === "bidder" &&
+            activePage === "MyTenders" ? (
+            <MyTenders
+              setActivePage={setActivePage}
+            />
+
+          ) : role === "bidder" &&
+            activePage === "MyBids" ? (
+            <MyBids
+              setActivePage={setActivePage}
+            />
+
+          ) : role === "bidder" &&
+            activePage === "UploadDocuments" ? (
+            <UploadDocuments
+              setActivePage={setActivePage}
+            />
+
+          ) : role === "bidder" &&
+            activePage === "VerificationStatus" ? (
+            <VerificationStatus
+              setActivePage={setActivePage}
+            />
+
+          ) : role === "bidder" &&
+            activePage === "Profile & Settings" ? (
+            <ProfileSettingsBidder
+              setActivePage={setActivePage}
+            />
+
+          /* =====================================
+             OFFICER ROUTES
+          ===================================== */
+
+          ) : role === "officer" &&
+            activePage === "Dashboard" ? (
+            <Dashboard
+              tenders={tenders}
+              bidders={bidders}
+              verificationResults={
+                verificationResults
+              }
+              documents={documents}
+              setActivePage={setActivePage}
+            />
+
+          ) : role === "officer" &&
+            activePage === "Tenders" ? (
+            <Tenders
+              tenders={tenders}
+            />
+
+          ) : role === "officer" &&
+            activePage === "Bidders" ? (
+            <Bidders
+              bidders={bidders}
+              documents={documents}
+              verificationResults={
+                verificationResults
+              }
+              setActivePage={setActivePage}
+              setSelectedBidderId={
+                setSelectedBidderId
+              }
+            />
+
+          ) : role === "officer" &&
+            activePage === "Documents" ? (
+            <Documents
+              documents={documents}
+              verificationResults={
+                verificationResults
+              }
+            />
+
+          ) : role === "officer" &&
+            activePage === "Verification" ? (
+            <Verification
+              bidders={bidders}
+              documents={documents}
+              verificationResults={
+                verificationResults
+              }
+              selectedBidderId={
+                selectedBidderId
+              }
+              setSelectedBidderId={
+                setSelectedBidderId
+              }
+            />
+
+          ) : role === "officer" &&
+            activePage === "Reports" ? (
+            <Reports
+              tenders={tenders}
+              bidders={bidders}
+              documents={documents}
+              verificationResults={
+                verificationResults
+              }
+            />
+
+          ) : role === "officer" &&
+            activePage ===
+              "Profile & Settings" ? (
+            <ProfileSettings />
+
+          /* =====================================
+             FALLBACK
+          ===================================== */
+
+          ) : role === "officer" ? (
+            <Dashboard
+              tenders={tenders}
+              bidders={bidders}
+              verificationResults={
+                verificationResults
+              }
+              documents={documents}
+              setActivePage={setActivePage}
+            />
+
+          ) : (
             <BidderDashboard
               setActivePage={setActivePage}
             />
           )}
 
-        {role === "bidder" &&
-          activePage === "MyTenders" && (
-            <MyTenders
-              setActivePage={setActivePage}
-            />
-          )}
+        </main>
 
-        {role === "bidder" &&
-          activePage === "MyBids" && (
-            <MyBids
-              setActivePage={setActivePage}
-            />
-          )}
-
-        {role === "bidder" &&
-          activePage === "UploadDocuments" && (
-            <UploadDocuments
-              setActivePage={setActivePage}
-            />
-          )}
-
-        {role === "bidder" &&
-          activePage === "VerificationStatus" && (
-            <VerificationStatus
-              setActivePage={setActivePage}
-            />
-          )}
-
-        {/* ===================== */}
-        {/* OFFICER */}
-        {/* ===================== */}
-
-        {role === "officer" &&
-          activePage === "Dashboard" && (
-            <Dashboard
-              tenders={tenders}
-              bidders={bidders}
-              verificationResults={verificationResults}
-              setActivePage={setActivePage}
-            />
-          )}
-
-        {role === "officer" &&
-          activePage === "Tenders" && (
-            <Tenders
-              tenders={tenders}
-              setActivePage={setActivePage}
-            />
-          )}
-
-        {role === "officer" &&
-          activePage === "Bidders" && (
-            <Bidders
-              bidders={bidders}
-              documents={documents}
-              verificationResults={verificationResults}
-              setActivePage={setActivePage}
-              setSelectedBidderId={setSelectedBidderId}
-            />
-          )}
-
-        {role === "officer" &&
-          activePage === "Documents" && (
-            <Documents
-              documents={documents}
-              verificationResults={verificationResults}
-            />
-          )}
-
-        {role === "officer" &&
-          activePage === "Verification" && (
-            <Verification
-              bidders={bidders}
-              documents={documents}
-              verificationResults={verificationResults}
-              selectedBidderId={selectedBidderId}
-              setSelectedBidderId={setSelectedBidderId}
-            />
-          )}
-
-      </main>
+      </div>
     </div>
   );
 }
