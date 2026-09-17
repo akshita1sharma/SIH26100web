@@ -64,6 +64,10 @@ const Login = ({
             ) || "[]"
           ) as StoredUser[];
 
+        // =========================================
+        // NORMAL REGISTERED USER LOGIN
+        // =========================================
+
         const user = storedUsers.find(
           (item) =>
             item.email.toLowerCase() ===
@@ -72,27 +76,94 @@ const Login = ({
             item.role === role
         );
 
-        if (!user) {
+        // =========================================
+        // DEMO LOGIN FOR JUDGES
+        // =========================================
+
+        const demoBidder =
+          cleanEmail ===
+            "johndoe45@gmail.com" &&
+          password === "123456" &&
+          role === "bidder";
+
+        const demoOfficer =
+          cleanEmail ===
+            "johndoe45@gmail.com" &&
+          password === "654321" &&
+          role === "officer";
+
+        // =========================================
+        // INVALID LOGIN
+        // =========================================
+
+        if (
+          !user &&
+          !demoBidder &&
+          !demoOfficer
+        ) {
           setError(
             "Invalid email, password, or selected role."
           );
+
           setLoading(false);
           return;
         }
 
+        // =========================================
+        // CREATE DEMO USER OBJECT
+        // =========================================
+
+        const loginUser: StoredUser =
+          user || {
+            name:
+              role === "bidder"
+                ? "John Doe"
+                : "Procurement Officer",
+
+            email: cleanEmail,
+
+            organization:
+              role === "bidder"
+                ? "Demo Organization"
+                : "",
+
+            phone: "",
+
+            password,
+
+            role,
+          };
+
+        // =========================================
+        // SAVE CURRENT USER
+        // =========================================
+
         localStorage.setItem(
           "gem_verify_current_user",
-          JSON.stringify(user)
+          JSON.stringify(loginUser)
         );
+
+        // =========================================
+        // REMEMBER ME
+        // =========================================
 
         if (rememberMe) {
           localStorage.setItem(
             "gem_verify_remember",
             "true"
           );
+        } else {
+          localStorage.removeItem(
+            "gem_verify_remember"
+          );
         }
 
-        onLogin(user.role);
+        // =========================================
+        // LOGIN
+        // =========================================
+
+        onLogin(loginUser.role);
+
       } catch (err) {
         console.error(
           "Login error:",
@@ -186,6 +257,7 @@ const Login = ({
 
               <h2 className="text-5xl font-bold leading-tight text-white xl:text-6xl">
                 Smarter
+
                 <span className="block text-blue-300">
                   Procurement.
                 </span>
@@ -406,6 +478,16 @@ const Login = ({
 
                   </div>
 
+                  {/* TEST EMAIL */}
+
+                  <p className="mt-1.5 text-[11px] text-slate-400">
+                    (Use this for test:{" "}
+                    <span className="text-sm font-bold text-slate-700">
+                      johnDoe45@gmail.com
+                    </span>
+                    )
+                  </p>
+
                 </div>
 
                 {/* PASSWORD */}
@@ -469,6 +551,18 @@ const Login = ({
                     </button>
 
                   </div>
+
+                  {/* TEST PASSWORD */}
+
+                  <p className="mt-1.5 text-[15px] text-slate-400">
+                    (Use this for test:{" "}
+                    <span className="font-semibold text-slate-700">
+                      {role === "bidder"
+                        ? "123456"
+                        : "654321"}
+                    </span>
+                    )
+                  </p>
 
                 </div>
 
@@ -558,6 +652,7 @@ const Login = ({
                 </div>
 
                 <div>
+
                   <p className="text-xs font-bold text-blue-700">
                     Secure Access
                   </p>
@@ -566,6 +661,7 @@ const Login = ({
                     Your account information is protected
                     by secure authentication.
                   </p>
+
                 </div>
 
               </div>
@@ -577,6 +673,7 @@ const Login = ({
             </p>
 
           </div>
+
         </div>
 
       </div>
