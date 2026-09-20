@@ -25,10 +25,7 @@ load_dotenv()
 app = FastAPI(title="SIH26100 GeM Compliance API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -76,39 +73,6 @@ class TenderCreate(BaseModel):
     status: str = "OPEN"
 
 
-class TenderEligibilityCreate(BaseModel):
-    minimum_experience_years: float = 0
-    minimum_annual_turnover: float = 0
-    gst_required: bool = True
-    pan_required: bool = True
-    udyam_required: bool = True
-    other_requirements: list[str] = []
-
-
-class TenderItemCreate(BaseModel):
-    item_name: str
-    description: str = ""
-    material: str = ""
-    specifications: dict = {}
-    quantity: float = 1
-    unit: str = "UNIT"
-    estimated_price: float | None = None
-    mandatory_requirements: list[str] = []
-
-
-class BidderProductCreate(BaseModel):
-    tender_id: int
-    item_id: int
-    bidder_id: int
-    product_name: str
-    description: str = ""
-    material: str = ""
-    quantity: float = 1
-    price: float = 0
-    specifications: dict = {}
-    image_url: str | None = None
-
-
 @app.post("/tenders")
 def create_tender(tender: TenderCreate):
     response = (
@@ -127,8 +91,7 @@ def create_tender(tender: TenderCreate):
     return {
         "success": True,
         "tender": response.data
-    }
-
+    }        
 
 @app.get("/tenders")
 def get_tenders():
@@ -143,100 +106,7 @@ def get_tenders():
     return {
         "success": True,
         "tenders": response.data
-    }
-@app.get("/tenders/{tender_id}/eligibility")
-def get_tender_eligibility(tender_id: int):
-
-    response = (
-        supabase
-        .table("tender_eligibility_requirements")
-        .select("*")
-        .eq("tender_id", tender_id)
-        .limit(1)
-        .execute()
-    )
-
-    return {
-        "success": True,
-        "tender_id": tender_id,
-        "eligibility": (response.data or [None])[0]
-    }
-
-@app.post("/tenders/{tender_id}/eligibility")
-def create_tender_eligibility(tender_id: int, eligibility: TenderEligibilityCreate):
-    response = (
-        supabase
-        .table("tender_eligibility_requirements")
-        .upsert({
-            "tender_id": tender_id,
-            "minimum_experience_years": eligibility.minimum_experience_years,
-            "minimum_annual_turnover": eligibility.minimum_annual_turnover,
-            "gst_required": eligibility.gst_required,
-            "pan_required": eligibility.pan_required,
-            "udyam_required": eligibility.udyam_required,
-            "other_requirements": eligibility.other_requirements
-        }, on_conflict="tender_id")
-        .execute()
-    )
-    return {"success": True, "eligibility": response.data}
-
-
-@app.get("/tenders/{tender_id}/eligibility")
-def get_tender_eligibility(tender_id: int):
-    response = (
-        supabase
-        .table("tender_eligibility_requirements")
-        .select("*")
-        .eq("tender_id", tender_id)
-        .limit(1)
-        .execute()
-    )
-    return {"success": True, "tender_id": tender_id, "eligibility": (response.data or [None])[0]}
-
-
-@app.post("/tenders/{tender_id}/items")
-def create_tender_item(tender_id: int, item: TenderItemCreate):
-    response = (
-        supabase
-        .table("tender_items")
-        .insert({
-            "tender_id": tender_id,
-            "item_name": item.item_name,
-            "description": item.description,
-            "material": item.material,
-            "specifications": item.specifications,
-            "quantity": item.quantity,
-            "unit": item.unit,
-            "estimated_price": item.estimated_price,
-            "mandatory_requirements": item.mandatory_requirements
-        })
-        .execute()
-    )
-    return {"success": True, "item": response.data}
-
-
-@app.post("/tenders/{tender_id}/items/bulk")
-def create_tender_items_bulk(tender_id: int, items: list[TenderItemCreate]):
-    if not items:
-        raise HTTPException(status_code=400, detail="At least one tender item is required.")
-
-    payload = [
-        {
-            "tender_id": tender_id,
-            "item_name": item.item_name,
-            "description": item.description,
-            "material": item.material,
-            "specifications": item.specifications,
-            "quantity": item.quantity,
-            "unit": item.unit,
-            "estimated_price": item.estimated_price,
-            "mandatory_requirements": item.mandatory_requirements
-        }
-        for item in items
-    ]
-    response = supabase.table("tender_items").insert(payload).execute()
-    return {"success": True, "tender_id": tender_id, "items": response.data}
-
+    }    
 
 @app.get("/tenders/{tender_id}/items")
 def get_tender_items(tender_id: int):
@@ -248,150 +118,12 @@ def get_tender_items(tender_id: int):
         .order("id")
         .execute()
     )
-    return {"success": True, "tender_id": tender_id, "items": response.data}
 
-
-@app.get("/tenders/{tender_id}/details")
-def get_tender_details(tender_id: int):
-    tender_response = (
-        supabase.table("tenders").select("*").eq("id", tender_id).single().execute()
-    )
-    eligibility_response = (
-        supabase.table("tender_eligibility_requirements")
-        .select("*").eq("tender_id", tender_id).limit(1).execute()
-    )
-    items_response = (
-        supabase.table("tender_items").select("*").eq("tender_id", tender_id).order("id").execute()
-    )
-    return {
-        "success": True,
-        "tender": tender_response.data,
-        "eligibility": (eligibility_response.data or [None])[0],
-        "items": items_response.data or []
-    }
-
-
-@app.post("/bidder-products")
-def create_bidder_product(product: BidderProductCreate):
-    # Basic relation check so a product cannot silently point to an item from another tender.
-    item_response = (
-        supabase.table("tender_items").select("id, tender_id")
-        .eq("id", product.item_id).single().execute()
-    )
-    item = item_response.data
-    if not item or item["tender_id"] != product.tender_id:
-        raise HTTPException(status_code=400, detail="Item does not belong to the supplied tender.")
-
-    response = (
-        supabase.table("bidder_products").insert({
-            "tender_id": product.tender_id,
-            "item_id": product.item_id,
-            "bidder_id": product.bidder_id,
-            "product_name": product.product_name,
-            "description": product.description,
-            "material": product.material,
-            "quantity": product.quantity,
-            "price": product.price,
-            "specifications": product.specifications,
-            "image_url": product.image_url
-        }).execute()
-    )
-    return {"success": True, "product": response.data}
-
-
-@app.get("/tenders/{tender_id}/bidder-products")
-def get_bidder_products(tender_id: int, bidder_id: int | None = None):
-    query = supabase.table("bidder_products").select("*").eq("tender_id", tender_id)
-    if bidder_id is not None:
-        query = query.eq("bidder_id", bidder_id)
-    response = query.order("created_at", desc=True).execute()
-    return {"success": True, "tender_id": tender_id, "products": response.data}
-
-
-def _normalise(value):
-    return str(value).strip().lower().replace(" ", "")
-
-
-def compare_product_with_item(item: dict, product: dict):
-    required = item.get("specifications") or {}
-    provided = product.get("specifications") or {}
-    checks = []
-
-    for key, required_value in required.items():
-        provided_value = provided.get(key)
-        if provided_value is None:
-            checks.append({"field": key, "required": required_value, "provided": None, "status": "MISMATCH"})
-        elif _normalise(provided_value) == _normalise(required_value):
-            checks.append({"field": key, "required": required_value, "provided": provided_value, "status": "MATCH"})
-        else:
-            checks.append({"field": key, "required": required_value, "provided": provided_value, "status": "PARTIAL"})
-
-    if item.get("material"):
-        status = "MATCH" if _normalise(product.get("material", "")) == _normalise(item["material"]) else "MISMATCH"
-        checks.append({"field": "material", "required": item["material"], "provided": product.get("material", ""), "status": status})
-
-    if item.get("quantity") is not None:
-        status = "MATCH" if float(product.get("quantity", 0)) >= float(item["quantity"]) else "MISMATCH"
-        checks.append({"field": "quantity", "required": item["quantity"], "provided": product.get("quantity", 0), "status": status})
-
-    mandatory = item.get("mandatory_requirements") or []
-    text = " ".join([
-        str(product.get("product_name", "")),
-        str(product.get("description", "")),
-        str(product.get("specifications", {}))
-    ]).lower()
-    for requirement in mandatory:
-        status = "MATCH" if str(requirement).lower() in text else "REVIEW"
-        checks.append({"field": "mandatory_requirement", "required": requirement, "provided": text, "status": status})
-
-    if not checks:
-        score = 100
-    else:
-        points = {"MATCH": 100, "PARTIAL": 60, "REVIEW": 50, "MISMATCH": 0}
-        score = round(sum(points[c["status"]] for c in checks) / len(checks), 2)
-
-    if any(c["status"] == "MISMATCH" for c in checks):
-        status = "MISMATCH"
-    elif any(c["status"] in ["PARTIAL", "REVIEW"] for c in checks):
-        status = "PARTIAL"
-    else:
-        status = "MATCH"
-
-    risk = "LOW" if score >= 80 else "MEDIUM" if score >= 50 else "HIGH"
-    return {"status": status, "score": score, "risk_level": risk, "checks": checks}
-
-
-@app.get("/tenders/{tender_id}/product-compliance/{bidder_id}")
-def get_product_compliance(tender_id: int, bidder_id: int):
-    items_response = supabase.table("tender_items").select("*").eq("tender_id", tender_id).order("id").execute()
-    products_response = (
-        supabase.table("bidder_products").select("*")
-        .eq("tender_id", tender_id).eq("bidder_id", bidder_id).execute()
-    )
-    products = products_response.data or []
-    product_by_item = {p["item_id"]: p for p in products}
-
-    comparisons = []
-    for item in items_response.data or []:
-        product = product_by_item.get(item["id"])
-        comparison = compare_product_with_item(item, product) if product else {
-            "status": "MISMATCH", "score": 0, "risk_level": "HIGH",
-            "checks": [{"field": "product_submission", "required": "Product required", "provided": None, "status": "MISMATCH"}]
-        }
-        comparisons.append({"item": item, "product": product, "comparison": comparison})
-
-    scores = [c["comparison"]["score"] for c in comparisons]
-    overall_score = round(sum(scores) / len(scores), 2) if scores else 0
-    overall_status = "COMPLIANT" if overall_score >= 80 else "REVIEW" if overall_score >= 50 else "NON_COMPLIANT"
     return {
         "success": True,
         "tender_id": tender_id,
-        "bidder_id": bidder_id,
-        "overall_score": overall_score,
-        "overall_status": overall_status,
-        "comparisons": comparisons
+        "items": response.data
     }
-
 
 class BidderCreate(BaseModel):
     bidder_code: str

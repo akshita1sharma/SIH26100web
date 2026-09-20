@@ -29,32 +29,54 @@ const Navbar = ({
   setActivePage,
   onLogout,
 }: NavbarProps) => {
-  const [user, setUser] = useState<StoredUser | null>(null);
-  const [showMenu, setShowMenu] = useState(false);
 
-  const menuRef = useRef<HTMLDivElement>(null);
+  // ============================================================
+  // OFFICER DASHBOARD
+  // No top navbar at all
+  // ============================================================
 
-  // =========================================
+  if (role === "officer") {
+    return null;
+  }
+
+  // ============================================================
+  // BIDDER NAVBAR
+  // ============================================================
+
+  const [user, setUser] =
+    useState<StoredUser | null>(null);
+
+  const [showMenu, setShowMenu] =
+    useState(false);
+
+  const menuRef =
+    useRef<HTMLDivElement>(null);
+
+  // ============================================================
   // LOAD CURRENT USER
-  // =========================================
+  // ============================================================
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem(
-        "gem_verify_current_user"
-      );
+      const storedUser =
+        localStorage.getItem(
+          "gem_verify_current_user"
+        );
 
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
     } catch (error) {
-      console.error("User load error:", error);
+      console.error(
+        "User load error:",
+        error
+      );
     }
   }, []);
 
-  // =========================================
-  // CLOSE DROPDOWN WHEN CLICKING OUTSIDE
-  // =========================================
+  // ============================================================
+  // CLOSE DROPDOWN
+  // ============================================================
 
   useEffect(() => {
     const handleClickOutside = (
@@ -83,21 +105,16 @@ const Navbar = ({
     };
   }, []);
 
-  // =========================================
+  // ============================================================
   // USER DETAILS
-  // =========================================
+  // ============================================================
 
   const userName =
-    user?.name ||
-    (role === "officer"
-      ? "Amit Sharma"
-      : "Bidder");
+    user?.name || "Bidder";
 
   const organization =
     user?.organization ||
-    (role === "officer"
-      ? "Procurement Officer"
-      : "Registered Bidder");
+    "Registered Bidder";
 
   const initials =
     userName
@@ -109,9 +126,9 @@ const Navbar = ({
       )
       .join("") || "U";
 
-  // =========================================
+  // ============================================================
   // LOGOUT
-  // =========================================
+  // ============================================================
 
   const handleLogout = () => {
     setShowMenu(false);
@@ -127,23 +144,30 @@ const Navbar = ({
     onLogout();
   };
 
-  // =========================================
+  // ============================================================
   // PROFILE
-  // =========================================
+  // ============================================================
 
   const handleProfile = () => {
     setShowMenu(false);
-    setActivePage("Profile & Settings");
+
+    setActivePage(
+      "Profile & Settings"
+    );
   };
+
+  // ============================================================
+  // BIDDER NAVBAR
+  // ============================================================
 
   return (
     <header className="sticky top-0 z-40 h-[70px] border-b border-slate-200 bg-white">
 
       <div className="flex h-full items-center justify-between px-6">
 
-        {/* ===================================== */}
-        {/* LEFT */}
-        {/* ===================================== */}
+        {/* ================================================== */}
+        {/* LEFT SIDE */}
+        {/* ================================================== */}
 
         <div className="flex items-center gap-5">
 
@@ -156,7 +180,7 @@ const Navbar = ({
             <Menu size={20} />
           </button>
 
-          {/* SEARCH */}
+          {/* SEARCH - BIDDER ONLY */}
 
           <div className="relative hidden w-[360px] md:block">
 
@@ -167,11 +191,7 @@ const Navbar = ({
 
             <input
               type="text"
-              placeholder={
-                role === "officer"
-                  ? "Search tenders, bidders, documents..."
-                  : "Search tenders, documents..."
-              }
+              placeholder="Search tenders, documents..."
               className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50"
             />
 
@@ -179,9 +199,9 @@ const Navbar = ({
 
         </div>
 
-        {/* ===================================== */}
-        {/* RIGHT */}
-        {/* ===================================== */}
+        {/* ================================================== */}
+        {/* RIGHT SIDE */}
+        {/* ================================================== */}
 
         <div className="flex items-center gap-5">
 
@@ -191,11 +211,13 @@ const Navbar = ({
             type="button"
             className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100"
           >
+
             <Bell size={19} />
 
             <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
               3
             </span>
+
           </button>
 
           {/* DIVIDER */}
@@ -212,7 +234,9 @@ const Navbar = ({
             <button
               type="button"
               onClick={() =>
-                setShowMenu(!showMenu)
+                setShowMenu(
+                  (value) => !value
+                )
               }
               className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-slate-50"
             >
@@ -232,9 +256,7 @@ const Navbar = ({
                 </p>
 
                 <p className="max-w-[150px] truncate text-[11px] text-slate-400">
-                  {role === "officer"
-                    ? "Procurement Officer"
-                    : organization}
+                  {organization}
                 </p>
 
               </div>
@@ -250,9 +272,9 @@ const Navbar = ({
 
             </button>
 
-            {/* ================================= */}
-            {/* DROPDOWN */}
-            {/* ================================= */}
+            {/* ================================================= */}
+            {/* PROFILE DROPDOWN */}
+            {/* ================================================= */}
 
             {showMenu && (
               <div className="absolute right-0 top-[54px] w-[280px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
@@ -274,18 +296,17 @@ const Navbar = ({
                       </p>
 
                       <p className="truncate text-xs text-slate-500">
-                        {user?.email || "Account"}
+                        {user?.email ||
+                          "Account"}
                       </p>
 
                     </div>
 
                   </div>
 
-                  {organization && (
-                    <p className="mt-3 truncate text-[11px] text-slate-500">
-                      {organization}
-                    </p>
-                  )}
+                  <p className="mt-3 truncate text-[11px] text-slate-500">
+                    {organization}
+                  </p>
 
                 </div>
 
@@ -293,11 +314,16 @@ const Navbar = ({
 
                 <div className="p-2">
 
+                  {/* PROFILE */}
+
                   <button
                     type="button"
-                    onClick={handleProfile}
+                    onClick={
+                      handleProfile
+                    }
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50"
                   >
+
                     <User
                       size={17}
                       className="text-slate-500"
@@ -306,18 +332,25 @@ const Navbar = ({
                     <span>
                       Profile & Settings
                     </span>
+
                   </button>
+
+                  {/* ACCOUNT SETTINGS */}
 
                   <button
                     type="button"
                     onClick={() => {
-                      setShowMenu(false);
+                      setShowMenu(
+                        false
+                      );
+
                       alert(
                         "Account settings will be connected here."
                       );
                     }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50"
                   >
+
                     <Settings
                       size={17}
                       className="text-slate-500"
@@ -326,18 +359,25 @@ const Navbar = ({
                     <span>
                       Account Settings
                     </span>
+
                   </button>
+
+                  {/* HELP */}
 
                   <button
                     type="button"
                     onClick={() => {
-                      setShowMenu(false);
+                      setShowMenu(
+                        false
+                      );
+
                       alert(
                         "Help & Support will be connected here."
                       );
                     }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50"
                   >
+
                     <HelpCircle
                       size={17}
                       className="text-slate-500"
@@ -346,6 +386,7 @@ const Navbar = ({
                     <span>
                       Help & Support
                     </span>
+
                   </button>
 
                 </div>
@@ -356,7 +397,9 @@ const Navbar = ({
 
                   <button
                     type="button"
-                    onClick={handleLogout}
+                    onClick={
+                      handleLogout
+                    }
                     className="flex w-full items-center gap-3 rounded-xl bg-red-50 px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-100"
                   >
 

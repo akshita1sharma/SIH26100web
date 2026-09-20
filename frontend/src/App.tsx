@@ -32,6 +32,14 @@ type StoredUser = {
 
 function App() {
   // =========================================
+  // API
+  // =========================================
+
+  const API =
+    import.meta.env.VITE_API_URL ||
+    "http://127.0.0.1:8000";
+
+  // =========================================
   // CURRENT USER
   // =========================================
 
@@ -98,61 +106,76 @@ function App() {
     useState<any[]>([]);
 
   // =========================================
-  // FETCH BACKEND DATA
+  // REFRESH BACKEND DATA
+  // =========================================
+
+  const refreshBackendData = async () => {
+    try {
+      const [
+        tendersResponse,
+        biddersResponse,
+        documentsResponse,
+        verificationResponse,
+      ] = await Promise.all([
+        fetch(`${API}/tenders`),
+        fetch(`${API}/bidders`),
+        fetch(`${API}/documents`),
+        fetch(`${API}/verification-results`),
+      ]);
+
+      if (
+        !tendersResponse.ok ||
+        !biddersResponse.ok ||
+        !documentsResponse.ok ||
+        !verificationResponse.ok
+      ) {
+        throw new Error(
+          "One or more backend requests failed."
+        );
+      }
+
+      const [
+        tendersData,
+        biddersData,
+        documentsData,
+        verificationData,
+      ] = await Promise.all([
+        tendersResponse.json(),
+        biddersResponse.json(),
+        documentsResponse.json(),
+        verificationResponse.json(),
+      ]);
+
+      setTenders(
+        tendersData.tenders || []
+      );
+
+      setBidders(
+        biddersData.bidders || []
+      );
+
+      setDocuments(
+        documentsData.documents || []
+      );
+
+      setVerificationResults(
+        verificationData.verification_results || []
+      );
+
+    } catch (error) {
+      console.error(
+        "Backend refresh error:",
+        error
+      );
+    }
+  };
+
+  // =========================================
+  // INITIAL BACKEND DATA
   // =========================================
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/tenders")
-      .then((res) => res.json())
-      .then((data) => {
-        setTenders(data.tenders || []);
-      })
-      .catch((error) => {
-        console.error(
-          "Tenders fetch error:",
-          error
-        );
-      });
-
-    fetch("http://127.0.0.1:8000/bidders")
-      .then((res) => res.json())
-      .then((data) => {
-        setBidders(data.bidders || []);
-      })
-      .catch((error) => {
-        console.error(
-          "Bidders fetch error:",
-          error
-        );
-      });
-
-    fetch("http://127.0.0.1:8000/documents")
-      .then((res) => res.json())
-      .then((data) => {
-        setDocuments(data.documents || []);
-      })
-      .catch((error) => {
-        console.error(
-          "Documents fetch error:",
-          error
-        );
-      });
-
-    fetch(
-      "http://127.0.0.1:8000/verification-results"
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setVerificationResults(
-          data.verification_results || []
-        );
-      })
-      .catch((error) => {
-        console.error(
-          "Verification results fetch error:",
-          error
-        );
-      });
+    refreshBackendData();
   }, []);
 
   // =========================================
@@ -163,10 +186,11 @@ function App() {
     selectedRole: "bidder" | "officer"
   ) => {
     setRole(selectedRole);
-
     setActivePage("Dashboard");
-
     setIsAuthenticated(true);
+
+    // Refresh latest backend data after login
+    refreshBackendData();
   };
 
   // =========================================
@@ -183,11 +207,8 @@ function App() {
     );
 
     setIsAuthenticated(false);
-
     setRole("bidder");
-
     setActivePage("Dashboard");
-
     setShowRegister(false);
   };
 
@@ -238,7 +259,7 @@ function App() {
 
       <div className="ml-64">
 
-        {/* COMMON NAVBAR */}
+        {/* NAVBAR */}
 
         <Navbar
           role={role}
@@ -256,36 +277,42 @@ function App() {
 
           {role === "bidder" &&
           activePage === "Dashboard" ? (
+
             <BidderDashboard
               setActivePage={setActivePage}
             />
 
           ) : role === "bidder" &&
             activePage === "MyTenders" ? (
+
             <MyTenders
               setActivePage={setActivePage}
             />
 
           ) : role === "bidder" &&
             activePage === "MyBids" ? (
+
             <MyBids
               setActivePage={setActivePage}
             />
 
           ) : role === "bidder" &&
             activePage === "UploadDocuments" ? (
+
             <UploadDocuments
               setActivePage={setActivePage}
             />
 
           ) : role === "bidder" &&
             activePage === "VerificationStatus" ? (
+
             <VerificationStatus
               setActivePage={setActivePage}
             />
 
           ) : role === "bidder" &&
             activePage === "Profile & Settings" ? (
+
             <ProfileSettingsBidder
               setActivePage={setActivePage}
             />
@@ -296,6 +323,7 @@ function App() {
 
           ) : role === "officer" &&
             activePage === "Dashboard" ? (
+
             <Dashboard
               tenders={tenders}
               bidders={bidders}
@@ -308,12 +336,14 @@ function App() {
 
           ) : role === "officer" &&
             activePage === "Tenders" ? (
+
             <Tenders
               tenders={tenders}
             />
 
           ) : role === "officer" &&
             activePage === "Bidders" ? (
+
             <Bidders
               bidders={bidders}
               documents={documents}
@@ -328,6 +358,7 @@ function App() {
 
           ) : role === "officer" &&
             activePage === "Documents" ? (
+
             <Documents
               documents={documents}
               verificationResults={
@@ -337,6 +368,7 @@ function App() {
 
           ) : role === "officer" &&
             activePage === "Verification" ? (
+
             <Verification
               bidders={bidders}
               documents={documents}
@@ -353,6 +385,7 @@ function App() {
 
           ) : role === "officer" &&
             activePage === "Reports" ? (
+
             <Reports
               tenders={tenders}
               bidders={bidders}
@@ -365,6 +398,7 @@ function App() {
           ) : role === "officer" &&
             activePage ===
               "Profile & Settings" ? (
+
             <ProfileSettings />
 
           /* =====================================
@@ -372,6 +406,7 @@ function App() {
           ===================================== */
 
           ) : role === "officer" ? (
+
             <Dashboard
               tenders={tenders}
               bidders={bidders}
@@ -383,13 +418,14 @@ function App() {
             />
 
           ) : (
+
             <BidderDashboard
               setActivePage={setActivePage}
             />
+
           )}
 
         </main>
-
       </div>
     </div>
   );

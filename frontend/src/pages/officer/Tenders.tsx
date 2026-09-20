@@ -1,14 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
-  Bell,
-  ChevronDown,
-  CalendarDays,
   Plus,
   Eye,
   X,
   Gavel,
-  FileText,
+  Package,
+  IndianRupee,
+  Boxes,
+  ShieldCheck,
 } from "lucide-react";
 
 const API =
@@ -23,529 +23,372 @@ type Props = {
 export default function Tenders({
   tenders: initialTenders = [],
 }: Props) {
+
   const [tenders, setTenders] =
     useState<any[]>(initialTenders);
 
-  const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("ALL");
+  const [tenderItems, setTenderItems] =
+    useState<any[]>([]);
 
-  const [department, setDepartment] =
-    useState("ALL");
-
-  const [statusFilter, setStatusFilter] =
-    useState("ALL");
-
-  const [showModal, setShowModal] =
-    useState(false);
-
-  const [selectedTender, setSelectedTender] =
+  const [selectedItem, setSelectedItem] =
     useState<any | null>(null);
 
+  const [search, setSearch] =
+    useState("");
+
   const [loading, setLoading] =
+    useState(true);
+
+  const [itemLoading, setItemLoading] =
+    useState(true);
+
+  const [showCreateModal, setShowCreateModal] =
     useState(false);
+
+  const [creating, setCreating] =
+    useState(false);
+
+  // ============================================================
+  // FORM
+  // ============================================================
 
   const [form, setForm] = useState({
     tender_number: "",
     title: "",
+    department: "",
+    procurement_category: "",
     description: "",
     submission_deadline: "",
-    status: "OPEN",
+    bid_opening_date: "",
+    estimated_value: "",
+    minimum_experience_years: "5",
+    minimum_annual_turnover: "5000000",
+    gst_required: true,
+    pan_required: true,
+    udyam_required: true,
   });
 
-  /* =====================================================
-     REFRESH TENDERS
-  ===================================================== */
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
 
-  const refreshTenders = async () => {
+  const loadData = async () => {
     try {
-      const response = await fetch(
-        `${API}/tenders`
-      );
+      setLoading(true);
+      setItemLoading(true);
 
-      const data = await response.json();
+      const tenderResponse =
+        await fetch(`${API}/tenders`);
 
-      setTenders(data.tenders || []);
+      if (tenderResponse.ok) {
+
+        const tenderData =
+          await tenderResponse.json();
+
+        setTenders(
+          tenderData.tenders || []
+        );
+      }
+
+      const itemResponse =
+        await fetch(`${API}/tenders/5/items`);
+
+      if (itemResponse.ok) {
+
+        const itemData =
+          await itemResponse.json();
+
+        setTenderItems(
+          itemData.items || []
+        );
+      }
+
     } catch (error) {
+
       console.error(
-        "Failed to load tenders:",
+        "Failed to load tender data:",
         error
       );
+
+      setTenderItems([]);
+
+    } finally {
+
+      setLoading(false);
+      setItemLoading(false);
     }
   };
 
-  /* =====================================================
-     CREATE TENDER
-  ===================================================== */
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // ============================================================
+  // SEARCH
+  // ============================================================
+
+  const filteredItems = useMemo(() => {
+
+    const query =
+      search.trim().toLowerCase();
+
+    if (!query) {
+      return tenderItems;
+    }
+
+    return tenderItems.filter(
+      (item: any) => {
+
+        const name =
+          String(
+            item.item_name || ""
+          ).toLowerCase();
+
+        const description =
+          String(
+            item.description || ""
+          ).toLowerCase();
+
+        const material =
+          String(
+            item.material || ""
+          ).toLowerCase();
+
+        return (
+          name.includes(query) ||
+          description.includes(query) ||
+          material.includes(query)
+        );
+      }
+    );
+
+  }, [tenderItems, search]);
+
+  // ============================================================
+  // CREATE TENDER
+  // ============================================================
 
   const createTender = async () => {
+
     if (
       !form.tender_number.trim() ||
       !form.title.trim() ||
+      !form.department.trim() ||
+      !form.procurement_category.trim() ||
       !form.description.trim() ||
-      !form.submission_deadline
+      !form.submission_deadline ||
+      !form.bid_opening_date ||
+      !form.estimated_value
     ) {
+
       alert(
         "Please fill all required fields."
       );
+
+      return;
+    }
+
+    const submission =
+      new Date(
+        form.submission_deadline
+      );
+
+    const opening =
+      new Date(
+        form.bid_opening_date
+      );
+
+    if (
+      Number.isNaN(
+        submission.getTime()
+      ) ||
+      Number.isNaN(
+        opening.getTime()
+      )
+    ) {
+
+      alert(
+        "Please enter valid dates."
+      );
+
+      return;
+    }
+
+    if (opening >= submission) {
+
+      alert(
+        "Bid opening date must be before the submission deadline."
+      );
+
       return;
     }
 
     try {
-      setLoading(true);
 
-      const response = await fetch(
-        `${API}/tenders`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify(form),
-        }
-      );
+      setCreating(true);
+
+      const response =
+        await fetch(
+          `${API}/tenders`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              tender_number:
+                form.tender_number.trim(),
+
+              title:
+                form.title.trim(),
+
+              department:
+                form.department.trim(),
+
+              procurement_category:
+                form.procurement_category.trim(),
+
+              description:
+                form.description.trim(),
+
+              submission_deadline:
+                form.submission_deadline,
+
+              bid_opening_date:
+                form.bid_opening_date,
+
+              estimated_value:
+                Number(
+                  form.estimated_value
+                ),
+
+              minimum_experience_years:
+                Number(
+                  form.minimum_experience_years
+                ),
+
+              minimum_annual_turnover:
+                Number(
+                  form.minimum_annual_turnover
+                ),
+
+              gst_required:
+                form.gst_required,
+
+              pan_required:
+                form.pan_required,
+
+              udyam_required:
+                form.udyam_required,
+
+              status: "OPEN",
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
 
       if (!response.ok) {
+
         throw new Error(
-          "Failed to create tender"
+          data.detail ||
+            "Failed to create tender."
         );
       }
 
-      await refreshTenders();
+      alert(
+        "Tender created successfully."
+      );
+
+      setShowCreateModal(false);
 
       setForm({
         tender_number: "",
         title: "",
+        department: "",
+        procurement_category: "",
         description: "",
         submission_deadline: "",
-        status: "OPEN",
+        bid_opening_date: "",
+        estimated_value: "",
+        minimum_experience_years: "5",
+        minimum_annual_turnover: "5000000",
+        gst_required: true,
+        pan_required: true,
+        udyam_required: true,
       });
 
-      setShowModal(false);
+      await loadData();
 
-      alert("Tender created successfully.");
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+
+      console.error(
+        "Create tender error:",
+        error
+      );
 
       alert(
-        "Unable to create tender. Please check your backend."
+        error.message ||
+          "Unable to create tender."
       );
+
     } finally {
-      setLoading(false);
+
+      setCreating(false);
     }
   };
 
-  /* =====================================================
-     FILTER DATA
-  ===================================================== */
+  // ============================================================
+  // FORMAT
+  // ============================================================
 
-  const departments = useMemo(() => {
-    const values = tenders
-      .map(
-        (tender) =>
-          tender.department ||
-          tender.organization ||
-          ""
-      )
-      .filter(Boolean);
-
-    return Array.from(
-      new Set(values)
-    );
-  }, [tenders]);
-
-  const filteredTenders = useMemo(() => {
-    return tenders.filter((tender) => {
-      const number = String(
-        tender.tender_number ||
-        tender.tender_id ||
-        tender.id ||
-        ""
-      ).toLowerCase();
-
-      const title = String(
-        tender.title || ""
-      ).toLowerCase();
-
-      const description = String(
-        tender.description || ""
-      ).toLowerCase();
-
-      const tenderStatus = String(
-        tender.status || "OPEN"
-      ).toUpperCase();
-
-      const tenderDepartment = String(
-        tender.department ||
-        tender.organization ||
-        ""
+  const formatKey = (
+    key: string
+  ) =>
+    key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) =>
+        char.toUpperCase()
       );
 
-      const matchesSearch =
-        number.includes(
-          search.toLowerCase()
-        ) ||
-        title.includes(
-          search.toLowerCase()
-        ) ||
-        description.includes(
-          search.toLowerCase()
-        );
-
-      const matchesDepartment =
-        department === "ALL" ||
-        tenderDepartment === department;
-
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        tenderStatus === statusFilter;
-
-      let matchesTab = true;
-
-      if (activeTab === "DRAFT") {
-        matchesTab =
-          tenderStatus === "DRAFT";
-      }
-
-      if (activeTab === "PUBLISHED") {
-        matchesTab =
-          tenderStatus === "PUBLISHED" ||
-          tenderStatus === "OPEN";
-      }
-
-      if (
-        activeTab === "UNDER_EVALUATION"
-      ) {
-        matchesTab =
-          tenderStatus ===
-          "UNDER_EVALUATION";
-      }
-
-      if (activeTab === "AWARDED") {
-        matchesTab =
-          tenderStatus === "AWARDED";
-      }
-
-      if (activeTab === "CLOSED") {
-        matchesTab =
-          tenderStatus === "CLOSED";
-      }
-
-      return (
-        matchesSearch &&
-        matchesDepartment &&
-        matchesStatus &&
-        matchesTab
-      );
-    });
-  }, [
-    tenders,
-    search,
-    activeTab,
-    department,
-    statusFilter,
-  ]);
-
-  /* =====================================================
-     TAB COUNTS
-  ===================================================== */
-
-  const countTab = (
-    type: string
+  const formatValue = (
+    value: any
   ) => {
-    if (type === "ALL") {
-      return tenders.length;
-    }
-
-    if (type === "DRAFT") {
-      return tenders.filter(
-        (t) =>
-          String(
-            t.status || ""
-          ).toUpperCase() === "DRAFT"
-      ).length;
-    }
-
-    if (type === "PUBLISHED") {
-      return tenders.filter((t) => {
-        const status =
-          String(
-            t.status || ""
-          ).toUpperCase();
-
-        return (
-          status === "PUBLISHED" ||
-          status === "OPEN"
-        );
-      }).length;
-    }
 
     if (
-      type === "UNDER_EVALUATION"
+      typeof value === "boolean"
     ) {
-      return tenders.filter(
-        (t) =>
-          String(
-            t.status || ""
-          ).toUpperCase() ===
-          "UNDER_EVALUATION"
-      ).length;
+      return value ? "Yes" : "No";
     }
 
-    if (type === "AWARDED") {
-      return tenders.filter(
-        (t) =>
-          String(
-            t.status || ""
-          ).toUpperCase() ===
-          "AWARDED"
-      ).length;
-    }
-
-    if (type === "CLOSED") {
-      return tenders.filter(
-        (t) =>
-          String(
-            t.status || ""
-          ).toUpperCase() ===
-          "CLOSED"
-      ).length;
-    }
-
-    return 0;
+    return String(value);
   };
 
-  /* =====================================================
-     FORMAT DATE
-  ===================================================== */
-
-  const formatDate = (
-    date: any
-  ) => {
-    if (!date) return "—";
-
-    const parsed =
-      new Date(date);
-
-    if (
-      Number.isNaN(
-        parsed.getTime()
-      )
-    ) {
-      return String(date);
-    }
-
-    return parsed.toLocaleDateString(
-      "en-GB",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }
-    );
-  };
-
-  /* =====================================================
-     STATUS
-  ===================================================== */
-
-  const getStatus = (
-    tender: any
-  ) => {
-    const status =
-      String(
-        tender.status || "OPEN"
-      ).toUpperCase();
-
-    if (
-      status === "CLOSED"
-    ) {
-      return {
-        label: "CLOSED",
-        className:
-          "bg-slate-100 text-slate-600",
-      };
-    }
-
-    if (
-      status === "DRAFT"
-    ) {
-      return {
-        label: "DRAFT",
-        className:
-          "bg-slate-100 text-slate-600",
-      };
-    }
-
-    if (
-      status ===
-      "UNDER_EVALUATION"
-    ) {
-      return {
-        label: "UNDER EVALUATION",
-        className:
-          "bg-purple-50 text-purple-600",
-      };
-    }
-
-    if (
-      status === "AWARDED"
-    ) {
-      return {
-        label: "AWARDED",
-        className:
-          "bg-blue-50 text-blue-600",
-      };
-    }
-
-    if (
-      status ===
-      "CLOSING_SOON"
-    ) {
-      return {
-        label: "CLOSING SOON",
-        className:
-          "bg-amber-50 text-amber-600",
-      };
-    }
-
-    if (
-      status === "UPCOMING"
-    ) {
-      return {
-        label: "UPCOMING",
-        className:
-          "bg-blue-50 text-blue-600",
-      };
-    }
-
-    return {
-      label: "OPEN",
-      className:
-        "bg-emerald-50 text-emerald-600",
-    };
-  };
-
-  /* =====================================================
-     BIDS
-  ===================================================== */
-
-  const getBids = (
-    tender: any
-  ) => {
-    return (
-      tender.bids ||
-      tender.bid_count ||
-      tender.total_bids ||
-      0
-    );
-  };
-
-  /* =====================================================
-     UI
-  ===================================================== */
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <div className="min-h-screen bg-[#f6f9fd] -m-8">
 
-      {/* =================================================
-          TOP TOOLBAR
-      ================================================= */}
-
-      <div className="h-[68px] bg-white border-b border-slate-200 px-7 flex items-center justify-between">
-
-        {/* LEFT */}
-
-        <div className="flex items-center gap-4">
-
-          <button
-            type="button"
-            className="text-slate-400 hover:text-blue-600 text-lg"
-          >
-            ☰
-          </button>
-
-          <div className="relative w-[340px]">
-
-            <Search
-              size={17}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
-              type="text"
-              placeholder="Search tenders, bidders, documents..."
-              className="w-full h-10 rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-
-          </div>
-
-        </div>
-
-        {/* RIGHT */}
-
-        <div className="flex items-center gap-5">
-
-          <div className="relative">
-
-            <Bell
-              size={19}
-              className="text-slate-500"
-            />
-
-            <span className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
-              0
-            </span>
-
-          </div>
-
-          <div className="flex items-center gap-2.5">
-
-            <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-bold">
-              AS
-            </div>
-
-            <div>
-
-              <p className="text-xs font-bold text-slate-800">
-                Amit Sharma
-              </p>
-
-              <p className="text-[10px] text-slate-400">
-                Procurement Officer
-              </p>
-
-            </div>
-
-            <ChevronDown
-              size={14}
-              className="text-slate-400"
-            />
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* =================================================
-          PAGE
-      ================================================= */}
-
       <main className="p-7">
 
-        {/* =================================================
-            PAGE HEADER
-        ================================================= */}
+        {/* ======================================================
+            HEADER
+        ====================================================== */}
 
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-6">
 
           <div>
 
             <div className="flex items-center gap-2">
 
               <Gavel
-                size={22}
+                size={23}
                 className="text-blue-600"
               />
 
@@ -556,16 +399,18 @@ export default function Tenders({
             </div>
 
             <p className="text-[12px] text-slate-500 mt-1">
-              Manage and track all procurement tenders
+              Manage procurement tenders and
+              product requirements
             </p>
 
           </div>
 
           <button
+            type="button"
             onClick={() =>
-              setShowModal(true)
+              setShowCreateModal(true)
             }
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold shadow-sm transition"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold"
           >
             <Plus size={15} />
             Create Tender
@@ -573,11 +418,97 @@ export default function Tenders({
 
         </div>
 
-        {/* =================================================
-            SEARCH BAR
-        ================================================= */}
+        {/* ======================================================
+            ACTIVE PROCUREMENT
+        ====================================================== */}
 
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm mb-4">
+        <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 mb-5">
+
+          <p className="text-[9px] text-blue-600 font-bold uppercase">
+            Active Procurement
+          </p>
+
+          <h2 className="text-[18px] font-bold text-slate-900 mt-1">
+            Office Infrastructure & IT Equipment Procurement
+          </h2>
+
+          <p className="text-[11px] text-slate-500 mt-2">
+            Procurement of office furniture,
+            computing equipment and essential
+            office infrastructure.
+          </p>
+
+          <div className="grid grid-cols-4 gap-3 mt-5">
+
+            <InfoCard
+              icon={<Package size={16} />}
+              label="Required Items"
+              value={String(
+                tenderItems.length
+              )}
+            />
+
+            <InfoCard
+              icon={<Boxes size={16} />}
+              label="Total Units"
+              value={String(
+                tenderItems.reduce(
+                  (
+                    total: number,
+                    item: any
+                  ) =>
+                    total +
+                    Number(
+                      item.quantity || 0
+                    ),
+                  0
+                )
+              )}
+            />
+
+            <InfoCard
+              icon={
+                <IndianRupee size={16} />
+              }
+              label="Estimated Value"
+              value={`₹${tenderItems
+                .reduce(
+                  (
+                    total: number,
+                    item: any
+                  ) =>
+                    total +
+                    Number(
+                      item.estimated_price ||
+                        0
+                    ) *
+                      Number(
+                        item.quantity || 0
+                      ),
+                  0
+                )
+                .toLocaleString(
+                  "en-IN"
+                )}`}
+            />
+
+            <InfoCard
+              icon={
+                <ShieldCheck size={16} />
+              }
+              label="Compliance"
+              value="Required"
+            />
+
+          </div>
+
+        </section>
+
+        {/* ======================================================
+            SEARCH
+        ====================================================== */}
+
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm mb-5">
 
           <div className="relative">
 
@@ -593,279 +524,43 @@ export default function Tenders({
                   e.target.value
                 )
               }
-              placeholder="Search tenders by title, department or keyword..."
-              className="w-full h-11 border border-slate-200 rounded-lg pl-10 pr-4 text-[11px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              placeholder="Search products, materials or requirements..."
+              className="w-full h-11 border border-slate-200 rounded-lg pl-10 pr-4 text-[11px] outline-none focus:border-blue-500"
             />
 
           </div>
 
         </div>
 
-        {/* =================================================
-            TABS
-        ================================================= */}
-
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm mb-4">
-
-          <div className="flex items-center gap-1 p-2 overflow-x-auto">
-
-            <Tab
-              label="All"
-              count={countTab("ALL")}
-              active={
-                activeTab === "ALL"
-              }
-              onClick={() =>
-                setActiveTab("ALL")
-              }
-            />
-
-            <Tab
-              label="Draft"
-              count={countTab("DRAFT")}
-              active={
-                activeTab === "DRAFT"
-              }
-              onClick={() =>
-                setActiveTab("DRAFT")
-              }
-            />
-
-            <Tab
-              label="Published"
-              count={countTab(
-                "PUBLISHED"
-              )}
-              active={
-                activeTab === "PUBLISHED"
-              }
-              onClick={() =>
-                setActiveTab(
-                  "PUBLISHED"
-                )
-              }
-            />
-
-            <Tab
-              label="Under Evaluation"
-              count={countTab(
-                "UNDER_EVALUATION"
-              )}
-              active={
-                activeTab ===
-                "UNDER_EVALUATION"
-              }
-              onClick={() =>
-                setActiveTab(
-                  "UNDER_EVALUATION"
-                )
-              }
-            />
-
-            <Tab
-              label="Awarded"
-              count={countTab(
-                "AWARDED"
-              )}
-              active={
-                activeTab === "AWARDED"
-              }
-              onClick={() =>
-                setActiveTab("AWARDED")
-              }
-            />
-
-            <Tab
-              label="Closed"
-              count={countTab(
-                "CLOSED"
-              )}
-              active={
-                activeTab === "CLOSED"
-              }
-              onClick={() =>
-                setActiveTab("CLOSED")
-              }
-            />
-
-          </div>
-
-        </div>
-
-        {/* =================================================
-            FILTERS
-        ================================================= */}
-
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 mb-4">
-
-          <div className="grid grid-cols-4 gap-4">
-
-            {/* DEPARTMENT */}
-
-            <FilterBox
-              label="Department"
-              icon={<FileText size={13} />}
-            >
-              <select
-                value={department}
-                onChange={(e) =>
-                  setDepartment(
-                    e.target.value
-                  )
-                }
-                className="w-full bg-transparent outline-none text-[11px] text-slate-600"
-              >
-
-                <option value="ALL">
-                  All Departments
-                </option>
-
-                {departments.map(
-                  (item) => (
-                    <option
-                      key={item}
-                      value={item}
-                    >
-                      {item}
-                    </option>
-                  )
-                )}
-
-              </select>
-            </FilterBox>
-
-            {/* STATUS */}
-
-            <FilterBox
-              label="Status"
-              icon={<Gavel size={13} />}
-            >
-
-              <select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(
-                    e.target.value
-                  )
-                }
-                className="w-full bg-transparent outline-none text-[11px] text-slate-600"
-              >
-
-                <option value="ALL">
-                  All Status
-                </option>
-
-                <option value="OPEN">
-                  Open
-                </option>
-
-                <option value="PUBLISHED">
-                  Published
-                </option>
-
-                <option value="DRAFT">
-                  Draft
-                </option>
-
-                <option value="UNDER_EVALUATION">
-                  Under Evaluation
-                </option>
-
-                <option value="AWARDED">
-                  Awarded
-                </option>
-
-                <option value="CLOSED">
-                  Closed
-                </option>
-
-              </select>
-
-            </FilterBox>
-
-            {/* DATE */}
-
-            <FilterBox
-              label="Date Range"
-              icon={
-                <CalendarDays
-                  size={13}
-                />
-              }
-            >
-
-              <input
-                type="date"
-                className="w-full bg-transparent outline-none text-[11px] text-slate-500"
-              />
-
-            </FilterBox>
-
-            {/* BUTTONS */}
-
-            <div className="flex items-end gap-2">
-
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setDepartment("ALL");
-                  setStatusFilter("ALL");
-                  setActiveTab("ALL");
-                }}
-                className="h-10 flex-1 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-500 hover:bg-slate-50"
-              >
-                Reset
-              </button>
-
-              <button
-                className="h-10 flex-1 rounded-lg bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700"
-              >
-                Apply
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* =================================================
-            TABLE
-        ================================================= */}
+        {/* ======================================================
+            ITEMS TABLE
+        ====================================================== */}
 
         <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-
-          {/* TABLE HEADER */}
 
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
 
             <div>
 
               <h2 className="text-sm font-bold text-slate-900">
-                Procurement Tenders
+                Required Procurement Items
               </h2>
 
               <p className="text-[10px] text-slate-400 mt-1">
-                {filteredTenders.length} tender
-                {filteredTenders.length !==
-                1
-                  ? "s"
-                  : ""}{" "}
-                displayed
+                Products and specifications
+                required for this procurement
               </p>
 
             </div>
 
             <button
-              onClick={refreshTenders}
-              className="text-[10px] text-blue-600 font-semibold hover:underline"
+              onClick={loadData}
+              className="text-[10px] text-blue-600 font-semibold"
             >
               Refresh
             </button>
 
           </div>
-
-          {/* TABLE */}
 
           <div className="overflow-x-auto">
 
@@ -873,38 +568,30 @@ export default function Tenders({
 
               <thead>
 
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr className="bg-slate-50 border-b">
 
-                  <th className="px-5 py-3 text-left text-[9px] font-bold text-slate-500 uppercase">
+                  <th className="px-5 py-3 text-left text-[9px] font-bold text-slate-500">
                     #
                   </th>
 
-                  <th className="px-3 py-3 text-left text-[9px] font-bold text-slate-500 uppercase">
-                    Tender ID
+                  <th className="px-3 py-3 text-left text-[9px] font-bold text-slate-500">
+                    PRODUCT
                   </th>
 
-                  <th className="px-3 py-3 text-left text-[9px] font-bold text-slate-500 uppercase">
-                    Title
+                  <th className="px-3 py-3 text-left text-[9px] font-bold text-slate-500">
+                    MATERIAL
                   </th>
 
-                  <th className="px-3 py-3 text-left text-[9px] font-bold text-slate-500 uppercase">
-                    Department
+                  <th className="px-3 py-3 text-center text-[9px] font-bold text-slate-500">
+                    QUANTITY
                   </th>
 
-                  <th className="px-3 py-3 text-left text-[9px] font-bold text-slate-500 uppercase">
-                    Deadline
+                  <th className="px-3 py-3 text-right text-[9px] font-bold text-slate-500">
+                    ESTIMATED PRICE
                   </th>
 
-                  <th className="px-3 py-3 text-center text-[9px] font-bold text-slate-500 uppercase">
-                    Bids
-                  </th>
-
-                  <th className="px-3 py-3 text-left text-[9px] font-bold text-slate-500 uppercase">
-                    Status
-                  </th>
-
-                  <th className="px-5 py-3 text-right text-[9px] font-bold text-slate-500 uppercase">
-                    Actions
+                  <th className="px-5 py-3 text-right text-[9px] font-bold text-slate-500">
+                    ACTION
                   </th>
 
                 </tr>
@@ -913,166 +600,105 @@ export default function Tenders({
 
               <tbody>
 
-                {filteredTenders.length ===
-                0 ? (
+                {itemLoading ? (
 
                   <tr>
-
                     <td
-                      colSpan={8}
+                      colSpan={6}
                       className="py-16 text-center"
                     >
-
-                      <div className="flex flex-col items-center">
-
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
-                          <Gavel
-                            size={21}
-                          />
-                        </div>
-
-                        <p className="text-sm font-semibold text-slate-700">
-                          No tenders found
-                        </p>
-
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          Try changing your search or filters.
-                        </p>
-
-                      </div>
-
+                      Loading procurement items...
                     </td>
+                  </tr>
 
+                ) : filteredItems.length ===
+                  0 ? (
+
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="py-16 text-center"
+                    >
+                      No procurement items found.
+                    </td>
                   </tr>
 
                 ) : (
 
-                  filteredTenders.map(
+                  filteredItems.map(
                     (
-                      tender,
-                      index
-                    ) => {
+                      item: any,
+                      index: number
+                    ) => (
 
-                      const status =
-                        getStatus(
-                          tender
-                        );
+                      <tr
+                        key={item.id}
+                        className="border-b border-slate-100 hover:bg-slate-50"
+                      >
 
-                      const id =
-                        tender.tender_number ||
-                        tender.tender_id ||
-                        tender.id ||
-                        "—";
+                        <td className="px-5 py-4 text-[10px] text-slate-400">
+                          {index + 1}
+                        </td>
 
-                      const title =
-                        tender.title ||
-                        "Untitled Tender";
+                        <td className="px-3 py-4">
 
-                      const dept =
-                        tender.department ||
-                        tender.organization ||
-                        "—";
+                          <p className="text-[11px] font-bold text-slate-800">
+                            {item.item_name}
+                          </p>
 
-                      const deadline =
-                        tender.submission_deadline ||
-                        tender.deadline;
+                          <p className="text-[9px] text-slate-400 mt-1">
+                            {item.description}
+                          </p>
 
-                      return (
-                        <tr
-                          key={
-                            tender.id ||
-                            id
-                          }
-                          className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition"
-                        >
+                        </td>
 
-                          <td className="px-5 py-4 text-[10px] text-slate-400">
-                            {index + 1}
-                          </td>
+                        <td className="px-3 py-4 text-[10px]">
+                          {item.material || "—"}
+                        </td>
 
-                          <td className="px-3 py-4">
+                        <td className="px-3 py-4 text-center">
 
-                            <p className="text-[10px] font-semibold text-slate-700">
-                              {id}
-                            </p>
+                          <span className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 text-[9px] font-bold">
+                            {item.quantity}{" "}
+                            {item.unit}
+                          </span>
 
-                          </td>
+                        </td>
 
-                          <td className="px-3 py-4 max-w-[230px]">
+                        <td className="px-3 py-4 text-right text-[10px] font-semibold">
 
-                            <p className="text-[11px] font-semibold text-slate-800 truncate">
-                              {title}
-                            </p>
+                          ₹
+                          {Number(
+                            item.estimated_price ||
+                              0
+                          ).toLocaleString(
+                            "en-IN"
+                          )}
 
-                            {tender.description && (
-                              <p className="text-[9px] text-slate-400 mt-1 truncate">
-                                {
-                                  tender.description
-                                }
-                              </p>
-                            )}
+                        </td>
 
-                          </td>
+                        <td className="px-5 py-4 text-right">
 
-                          <td className="px-3 py-4">
+                          <button
+                            onClick={() =>
+                              setSelectedItem(
+                                item
+                              )
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-blue-200 text-blue-600 hover:bg-blue-50 text-[9px] font-semibold"
+                          >
 
-                            <span className="text-[10px] text-slate-600">
-                              {dept}
-                            </span>
+                            <Eye size={12} />
 
-                          </td>
+                            View
 
-                          <td className="px-3 py-4">
+                          </button>
 
-                            <span className="text-[10px] text-slate-600">
-                              {formatDate(
-                                deadline
-                              )}
-                            </span>
+                        </td>
 
-                          </td>
+                      </tr>
 
-                          <td className="px-3 py-4 text-center">
-
-                            <span className="text-[10px] font-semibold text-slate-700">
-                              {getBids(
-                                tender
-                              )}
-                            </span>
-
-                          </td>
-
-                          <td className="px-3 py-4">
-
-                            <span
-                              className={`inline-flex items-center px-2.5 py-1 rounded-md text-[8px] font-bold ${status.className}`}
-                            >
-                              {status.label}
-                            </span>
-
-                          </td>
-
-                          <td className="px-5 py-4 text-right">
-
-                            <button
-                              onClick={() =>
-                                setSelectedTender(
-                                  tender
-                                )
-                              }
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-blue-200 text-blue-600 bg-white hover:bg-blue-50 text-[9px] font-semibold transition"
-                            >
-                              <Eye
-                                size={12}
-                              />
-                              View
-                            </button>
-
-                          </td>
-
-                        </tr>
-                      );
-                    }
+                    )
                   )
 
                 )}
@@ -1087,91 +713,307 @@ export default function Tenders({
 
       </main>
 
-      {/* =================================================
-          CREATE TENDER MODAL
-      ================================================= */}
+      {/* ========================================================
+          PRODUCT VIEW MODAL
+      ======================================================== */}
 
-      {showModal && (
+      {selectedItem && (
 
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-5">
 
-          <div className="w-full max-w-[560px] bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="w-full max-w-[680px] max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-            {/* HEADER */}
-
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-5 border-b flex items-center justify-between">
 
               <div>
 
+                <p className="text-[9px] text-blue-600 font-bold uppercase">
+                  Required Product
+                </p>
+
                 <h2 className="text-lg font-bold text-slate-900">
+                  {selectedItem.item_name}
+                </h2>
+
+              </div>
+
+              <button
+                onClick={() =>
+                  setSelectedItem(null)
+                }
+              >
+                <X
+                  size={18}
+                  className="text-slate-400"
+                />
+              </button>
+
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[65vh] space-y-5">
+
+              <div>
+
+                <p className="text-[9px] font-bold text-slate-400 uppercase mb-2">
+                  Description
+                </p>
+
+                <div className="bg-slate-50 rounded-lg p-3 text-[11px] text-slate-600">
+                  {selectedItem.description ||
+                    "No description available."}
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+
+                <DetailBox
+                  label="Material"
+                  value={
+                    selectedItem.material ||
+                    "—"
+                  }
+                />
+
+                <DetailBox
+                  label="Quantity"
+                  value={`${selectedItem.quantity} ${
+                    selectedItem.unit ||
+                    "UNIT"
+                  }`}
+                />
+
+                <DetailBox
+                  label="Estimated Price"
+                  value={`₹${Number(
+                    selectedItem.estimated_price ||
+                      0
+                  ).toLocaleString(
+                    "en-IN"
+                  )}`}
+                />
+
+              </div>
+
+              {selectedItem.specifications &&
+                Object.keys(
+                  selectedItem.specifications
+                ).length > 0 && (
+
+                  <div>
+
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mb-2">
+                      Required Specifications
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2">
+
+                      {Object.entries(
+                        selectedItem.specifications
+                      ).map(
+                        (
+                          [key, value]
+                        ) => (
+
+                          <div
+                            key={key}
+                            className="border rounded-lg px-3 py-2.5 flex justify-between"
+                          >
+
+                            <span className="text-[9px] text-slate-400">
+                              {formatKey(key)}
+                            </span>
+
+                            <span className="text-[9px] font-semibold text-slate-700">
+                              {formatValue(
+                                value
+                              )}
+                            </span>
+
+                          </div>
+
+                        )
+                      )}
+
+                    </div>
+
+                  </div>
+                )}
+
+              {Array.isArray(
+                selectedItem.mandatory_requirements
+              ) &&
+                selectedItem
+                  .mandatory_requirements
+                  .length > 0 && (
+
+                  <div>
+
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mb-2">
+                      Mandatory Requirements
+                    </p>
+
+                    <div className="space-y-2">
+
+                      {selectedItem.mandatory_requirements.map(
+                        (
+                          requirement: string,
+                          index: number
+                        ) => (
+
+                          <div
+                            key={index}
+                            className="flex gap-2"
+                          >
+
+                            <span className="text-emerald-600 font-bold">
+                              ✓
+                            </span>
+
+                            <span className="text-[10px] text-slate-600">
+                              {requirement}
+                            </span>
+
+                          </div>
+
+                        )
+                      )}
+
+                    </div>
+
+                  </div>
+                )}
+
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t flex justify-end">
+
+              <button
+                onClick={() =>
+                  setSelectedItem(null)
+                }
+                className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-[10px] font-semibold"
+              >
+                Close
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================
+          CREATE TENDER MODAL
+      ======================================================== */}
+
+      {showCreateModal && (
+
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-5">
+
+          <div className="w-full max-w-[700px] max-h-[92vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+            {/* HEADER */}
+
+            <div className="px-6 py-5 border-b flex items-center justify-between">
+
+              <div>
+
+                <h2 className="text-xl font-bold text-slate-900">
                   Create New Tender
                 </h2>
 
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Add procurement tender details
+                  Add procurement and eligibility details
                 </p>
 
               </div>
 
               <button
                 onClick={() =>
-                  setShowModal(false)
+                  setShowCreateModal(false)
                 }
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400"
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center"
               >
-                <X size={17} />
+                <X size={18} />
               </button>
 
             </div>
 
             {/* BODY */}
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 overflow-y-auto max-h-[72vh] space-y-5">
 
-              {/* TENDER NUMBER */}
+              {/* ==================================================
+                  BASIC INFORMATION
+              ================================================== */}
 
-              <div>
+              <SectionTitle>
+                Tender Information
+              </SectionTitle>
 
-                <label className="block text-[10px] font-semibold text-slate-600 mb-1.5">
-                  Tender Number *
-                </label>
+              <div className="grid grid-cols-2 gap-4">
 
-                <input
+                <InputField
+                  label="Tender Number"
+                  required
+                  placeholder="e.g. GEM-2026-017"
                   value={
                     form.tender_number
                   }
-                  onChange={(e) =>
+                  onChange={(value) =>
                     setForm({
                       ...form,
                       tender_number:
-                        e.target.value,
+                        value,
                     })
                   }
-                  placeholder="e.g. GEM-2026-017"
-                  className="w-full h-10 border border-slate-200 rounded-lg px-3 text-[11px] outline-none focus:border-blue-500"
                 />
 
-              </div>
-
-              {/* TITLE */}
-
-              <div>
-
-                <label className="block text-[10px] font-semibold text-slate-600 mb-1.5">
-                  Tender Title *
-                </label>
-
-                <input
+                <InputField
+                  label="Tender Title"
+                  required
+                  placeholder="Enter tender title"
                   value={form.title}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     setForm({
                       ...form,
-                      title:
-                        e.target.value,
+                      title: value,
                     })
                   }
-                  placeholder="Enter tender title"
-                  className="w-full h-10 border border-slate-200 rounded-lg px-3 text-[11px] outline-none focus:border-blue-500"
+                />
+
+                <InputField
+                  label="Department / Organization"
+                  required
+                  placeholder="e.g. Central Procurement Department"
+                  value={
+                    form.department
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      department:
+                        value,
+                    })
+                  }
+                />
+
+                <InputField
+                  label="Procurement Category"
+                  required
+                  placeholder="e.g. Office Equipment & IT"
+                  value={
+                    form.procurement_category
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      procurement_category:
+                        value,
+                    })
+                  }
                 />
 
               </div>
@@ -1181,7 +1023,7 @@ export default function Tenders({
               <div>
 
                 <label className="block text-[10px] font-semibold text-slate-600 mb-1.5">
-                  Description *
+                  Description / Scope *
                 </label>
 
                 <textarea
@@ -1195,99 +1037,189 @@ export default function Tenders({
                         e.target.value,
                     })
                   }
-                  placeholder="Describe procurement requirements..."
                   rows={4}
+                  placeholder="Describe the procurement scope and requirements..."
                   className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-[11px] outline-none resize-none focus:border-blue-500"
                 />
 
               </div>
 
-              {/* DEADLINE + STATUS */}
+              {/* ==================================================
+                  DATES + VALUE
+              ================================================== */}
+
+              <SectionTitle>
+                Tender Schedule & Value
+              </SectionTitle>
+
+              <div className="grid grid-cols-3 gap-4">
+
+                <InputField
+                  label="Submission Deadline"
+                  required
+                  type="datetime-local"
+                  value={
+                    form.submission_deadline
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      submission_deadline:
+                        value,
+                    })
+                  }
+                />
+
+                <InputField
+                  label="Bid Opening Date"
+                  required
+                  type="datetime-local"
+                  value={
+                    form.bid_opening_date
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      bid_opening_date:
+                        value,
+                    })
+                  }
+                />
+
+                <InputField
+                  label="Estimated Tender Value"
+                  required
+                  type="number"
+                  placeholder="₹"
+                  value={
+                    form.estimated_value
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      estimated_value:
+                        value,
+                    })
+                  }
+                />
+
+              </div>
+
+              {/* ==================================================
+                  ELIGIBILITY
+              ================================================== */}
+
+              <SectionTitle>
+                Bidder Eligibility Criteria
+              </SectionTitle>
 
               <div className="grid grid-cols-2 gap-4">
 
-                <div>
+                <InputField
+                  label="Minimum Business Experience (Years)"
+                  required
+                  type="number"
+                  value={
+                    form.minimum_experience_years
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      minimum_experience_years:
+                        value,
+                    })
+                  }
+                />
 
-                  <label className="block text-[10px] font-semibold text-slate-600 mb-1.5">
-                    Submission Deadline *
-                  </label>
+                <InputField
+                  label="Minimum Annual Turnover"
+                  required
+                  type="number"
+                  value={
+                    form.minimum_annual_turnover
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      minimum_annual_turnover:
+                        value,
+                    })
+                  }
+                />
 
-                  <input
-                    type="datetime-local"
-                    value={
-                      form.submission_deadline
-                    }
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        submission_deadline:
-                          e.target.value,
-                      })
-                    }
-                    className="w-full h-10 border border-slate-200 rounded-lg px-3 text-[10px] outline-none focus:border-blue-500"
-                  />
+              </div>
 
-                </div>
+              <div className="grid grid-cols-3 gap-3">
 
-                <div>
+                <CheckBox
+                  label="GST Registration Required"
+                  checked={
+                    form.gst_required
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      gst_required:
+                        value,
+                    })
+                  }
+                />
 
-                  <label className="block text-[10px] font-semibold text-slate-600 mb-1.5">
-                    Status
-                  </label>
+                <CheckBox
+                  label="PAN Required"
+                  checked={
+                    form.pan_required
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      pan_required:
+                        value,
+                    })
+                  }
+                />
 
-                  <select
-                    value={
-                      form.status
-                    }
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        status:
-                          e.target.value,
-                      })
-                    }
-                    className="w-full h-10 border border-slate-200 rounded-lg px-3 text-[11px] outline-none focus:border-blue-500"
-                  >
-
-                    <option value="OPEN">
-                      Open
-                    </option>
-
-                    <option value="DRAFT">
-                      Draft
-                    </option>
-
-                    <option value="PUBLISHED">
-                      Published
-                    </option>
-
-                  </select>
-
-                </div>
+                <CheckBox
+                  label="Udyam / MSME Required"
+                  checked={
+                    form.udyam_required
+                  }
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      udyam_required:
+                        value,
+                    })
+                  }
+                />
 
               </div>
 
             </div>
 
-            {/* FOOTER */}
+            {/* ==================================================
+                FOOTER
+            ================================================== */}
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
 
               <button
+                type="button"
                 onClick={() =>
-                  setShowModal(false)
+                  setShowCreateModal(false)
                 }
-                className="px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
+                className="px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-[10px] font-semibold text-slate-600"
               >
                 Cancel
               </button>
 
               <button
+                type="button"
                 onClick={createTender}
-                disabled={loading}
+                disabled={creating}
                 className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[10px] font-semibold"
               >
-                {loading
+                {creating
                   ? "Creating..."
                   : "Create Tender"}
               </button>
@@ -1297,219 +1229,146 @@ export default function Tenders({
           </div>
 
         </div>
-
-      )}
-
-      {/* =================================================
-          VIEW TENDER MODAL
-      ================================================= */}
-
-      {selectedTender && (
-
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-5">
-
-          <div className="w-full max-w-[520px] bg-white rounded-2xl shadow-2xl overflow-hidden">
-
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-
-              <div>
-
-                <p className="text-[9px] text-blue-600 font-bold uppercase tracking-wide">
-                  Tender Details
-                </p>
-
-                <h2 className="text-lg font-bold text-slate-900 mt-1">
-                  {selectedTender.title ||
-                    "Tender"}
-                </h2>
-
-              </div>
-
-              <button
-                onClick={() =>
-                  setSelectedTender(
-                    null
-                  )
-                }
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400"
-              >
-                <X size={17} />
-              </button>
-
-            </div>
-
-            <div className="p-6 space-y-4">
-
-              <DetailRow
-                label="Tender ID"
-                value={
-                  selectedTender.tender_number ||
-                  selectedTender.tender_id ||
-                  selectedTender.id ||
-                  "—"
-                }
-              />
-
-              <DetailRow
-                label="Department"
-                value={
-                  selectedTender.department ||
-                  selectedTender.organization ||
-                  "—"
-                }
-              />
-
-              <DetailRow
-                label="Submission Deadline"
-                value={formatDate(
-                  selectedTender.submission_deadline ||
-                    selectedTender.deadline
-                )}
-              />
-
-              <DetailRow
-                label="Bids Received"
-                value={String(
-                  getBids(
-                    selectedTender
-                  )
-                )}
-              />
-
-              <div>
-
-                <p className="text-[9px] uppercase tracking-wide font-bold text-slate-400 mb-2">
-                  Status
-                </p>
-
-                <span
-                  className={`inline-flex px-3 py-1.5 rounded-md text-[9px] font-bold ${
-                    getStatus(
-                      selectedTender
-                    ).className
-                  }`}
-                >
-                  {
-                    getStatus(
-                      selectedTender
-                    ).label
-                  }
-                </span>
-
-              </div>
-
-              <div>
-
-                <p className="text-[9px] uppercase tracking-wide font-bold text-slate-400 mb-2">
-                  Description
-                </p>
-
-                <p className="text-[11px] text-slate-600 leading-5 bg-slate-50 rounded-lg p-3">
-                  {selectedTender.description ||
-                    "No description available."}
-                </p>
-
-              </div>
-
-            </div>
-
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
-
-              <button
-                onClick={() =>
-                  setSelectedTender(
-                    null
-                  )
-                }
-                className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-[10px] font-semibold hover:bg-blue-700"
-              >
-                Close
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
       )}
 
     </div>
   );
 }
 
-/* =====================================================
-   TAB
-===================================================== */
+// ============================================================
+// COMPONENTS
+// ============================================================
 
-function Tab({
-  label,
-  count,
-  active,
-  onClick,
+function SectionTitle({
+  children,
 }: {
-  label: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2.5 rounded-lg text-[10px] font-semibold whitespace-nowrap transition ${
-        active
-          ? "bg-blue-600 text-white shadow-sm"
-          : "text-slate-500 hover:bg-slate-50"
-      }`}
-    >
-      {label}{" "}
-      <span
-        className={
-          active
-            ? "opacity-80"
-            : "text-slate-400"
-        }
-      >
-        ({count})
-      </span>
-    </button>
+    <div className="pt-1">
+
+      <h3 className="text-[11px] font-bold text-slate-800">
+        {children}
+      </h3>
+
+      <div className="h-px bg-slate-100 mt-2" />
+
+    </div>
   );
 }
 
-/* =====================================================
-   FILTER BOX
-===================================================== */
-
-function FilterBox({
+function InputField({
   label,
-  icon,
-  children,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required = false,
 }: {
   label: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  required?: boolean;
 }) {
   return (
     <div>
 
-      <label className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 mb-1.5">
-        {icon}
+      <label className="block text-[10px] font-semibold text-slate-600 mb-1.5">
+
         {label}
+
+        {required && (
+          <span className="text-red-500">
+            {" "}*
+          </span>
+        )}
+
       </label>
 
-      <div className="h-10 border border-slate-200 rounded-lg px-3 flex items-center bg-white">
-        {children}
+      <input
+        type={type}
+        value={value}
+        onChange={(e) =>
+          onChange(e.target.value)
+        }
+        placeholder={placeholder}
+        className="w-full h-10 border border-slate-200 rounded-lg px-3 text-[10px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+      />
+
+    </div>
+  );
+}
+
+function CheckBox({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-3 cursor-pointer hover:bg-slate-50">
+
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) =>
+          onChange(
+            e.target.checked
+          )
+        }
+        className="accent-blue-600"
+      />
+
+      <span className="text-[9px] text-slate-600">
+        {label}
+      </span>
+
+    </label>
+  );
+}
+
+function InfoCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="border border-slate-100 rounded-xl bg-slate-50 p-3">
+
+      <div className="flex items-center gap-2">
+
+        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-blue-600">
+          {icon}
+        </div>
+
+        <div>
+
+          <p className="text-[8px] uppercase tracking-wide font-bold text-slate-400">
+            {label}
+          </p>
+
+          <p className="text-[12px] font-bold text-slate-800 mt-0.5">
+            {value}
+          </p>
+
+        </div>
+
       </div>
 
     </div>
   );
 }
 
-/* =====================================================
-   DETAIL ROW
-===================================================== */
-
-function DetailRow({
+function DetailBox({
   label,
   value,
 }: {
@@ -1517,15 +1376,15 @@ function DetailRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-slate-100">
+    <div className="bg-slate-50 rounded-lg p-3">
 
-      <span className="text-[10px] text-slate-400">
+      <p className="text-[8px] uppercase tracking-wide font-bold text-slate-400">
         {label}
-      </span>
+      </p>
 
-      <span className="text-[10px] font-semibold text-slate-700 text-right max-w-[250px]">
+      <p className="text-[10px] font-semibold text-slate-700 mt-1">
         {value}
-      </span>
+      </p>
 
     </div>
   );
