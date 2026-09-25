@@ -141,62 +141,8 @@ const MyTenders = ({
     }
   };
 
-  const normalise = (value?: string) =>
-    String(value || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
 
-  const getProfileTerms = () => {
-    if (!profile) return [];
 
-    const raw = [
-      profile.primary_trade,
-      profile.products_services,
-      profile.business_type,
-      profile.business_description,
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    return [
-      ...new Set(
-        normalise(raw)
-          .split(" ")
-          .filter((word) => word.length >= 4)
-      ),
-    ];
-  };
-
-  const getTenderText = (tender: Tender) => {
-    const items = tenderItems[tender.id] || [];
-
-    const itemText = items
-      .map((item) =>
-        [
-          item.item_name,
-          item.description,
-          item.material,
-          ...(item.mandatory_requirements || []),
-        ]
-          .filter(Boolean)
-          .join(" ")
-      )
-      .join(" ");
-
-    return normalise(
-      [
-        tender.title,
-        tender.description,
-        tender.department,
-        tender.procurement_category,
-        itemText,
-      ]
-        .filter(Boolean)
-        .join(" ")
-    );
-  };
 
 const calculateMatch = (
   tender: Tender,

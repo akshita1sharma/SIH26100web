@@ -24,7 +24,7 @@ export default function Tenders({
   tenders: initialTenders = [],
 }: Props) {
 
-  const [tenders, setTenders] =
+  const [, setTenders] =
     useState<any[]>(initialTenders);
 
   const [tenderItems, setTenderItems] =
@@ -36,7 +36,7 @@ export default function Tenders({
   const [search, setSearch] =
     useState("");
 
-  const [loading, setLoading] =
+  const [, setLoading] =
     useState(true);
 
   const [itemLoading, setItemLoading] =
