@@ -6,13 +6,13 @@ type DashboardProps = {
   documents?: any[];
   verificationResults?: any[];
   setActivePage?: (page: string) => void;
-  onLogout?: () => void;
+onLogout: () => void;
 };
 function Dashboard({
   tenders: propTenders = [],
   bidders: propBidders = [],
   documents: propDocuments = [],
-  verificationResults: propVerificationResults = [],
+  verificationResults: propVerificationResults =  [],
   setActivePage,
   onLogout,
 }: DashboardProps) {
@@ -409,16 +409,12 @@ function Dashboard({
               >
                 Profile & Settings
               </button>
-              <button
-                onClick={() => {
-                  localStorage.removeItem("gem_verify_current_user");
-                  localStorage.removeItem("gem_verify_remember");
-                  window.location.reload();
-                }}
-                className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                Logout
-              </button>
+<button
+  onClick={onLogout}
+  className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+>
+  Logout
+</button>
               <button
                 onClick={() =>
                   setShowProfile(
