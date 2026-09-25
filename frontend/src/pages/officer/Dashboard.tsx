@@ -14,7 +14,6 @@ function Dashboard({
   documents: propDocuments = [],
   verificationResults: propVerificationResults =  [],
   setActivePage,
-  onLogout,
 }: DashboardProps) {
   /*
    * IMPORTANT:

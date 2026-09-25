@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Search,
-  Plus,
   Eye,
   X,
   Gavel,
@@ -24,7 +23,7 @@ export default function Tenders({
   tenders: initialTenders = [],
 }: Props) {
 
-  const [tenders, setTenders] =
+  const [, setTenders] =
     useState<any[]>(initialTenders);
 
   const [tenderItems, setTenderItems] =
@@ -36,7 +35,7 @@ export default function Tenders({
   const [search, setSearch] =
     useState("");
 
-  const [loading, setLoading] =
+  const [, setLoading] =
     useState(true);
 
   const [itemLoading, setItemLoading] =
@@ -410,10 +409,9 @@ export default function Tenders({
             onClick={() =>
               setShowCreateModal(true)
             }
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold"
+            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
           >
-            <Plus size={15} />
-            Create Tender
+            + &nbsp;Create Tender
           </button>
 
         </div>

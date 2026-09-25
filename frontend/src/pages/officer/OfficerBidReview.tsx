@@ -59,7 +59,7 @@ const API =
   import.meta.env.VITE_API_URL ||
   "http://127.0.0.1:8000";
 
-const OfficerBids = ({ setActivePage }: OfficerBidsProps) => {
+const OfficerBids = (_props: OfficerBidsProps) => {
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
