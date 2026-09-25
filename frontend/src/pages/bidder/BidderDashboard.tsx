@@ -4,6 +4,17 @@ type BidderDashboardProps = {
   setActivePage: (page: string) => void;
 };
 
+type BidderProfile = {
+  business_type?: string;
+  business_description?: string;
+  primary_trade?: string;
+  products_services?: string;
+};
+
+const API =
+  import.meta.env.VITE_API_URL ||
+  "http://127.0.0.1:8000";
+
 const BidderDashboard = ({
   setActivePage,
 }: BidderDashboardProps) => {
@@ -12,41 +23,182 @@ const BidderDashboard = ({
   const [verificationResults, setVerificationResults] =
     useState<any[]>([]);
 
+  const [bids, setBids] = useState<any[]>([]);
+
+  const [profile, setProfile] =
+    useState<BidderProfile | null>(null);
+
+  const [tenderItems, setTenderItems] = useState<
+    Record<number, any[]>
+  >({});
+
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/tenders")
-      .then((res) => res.json())
-      .then((data) => setTenders(data.tenders || []))
-      .catch(() => setTenders([]));
+    const loadDashboardData = async () => {
+      try {
+        const [
+          tendersResponse,
+          profileResponse,
+          documentsResponse,
+          verificationResponse,
+          bidsResponse,
+        ] = await Promise.all([
+          fetch(`${API}/tenders`),
+          fetch(`${API}/bidders/5/profile`),
+          fetch(`${API}/documents`),
+          fetch(`${API}/verification-results`),
+          fetch(`${API}/bid-submissions/5`),
+        ]);
 
-    fetch("http://127.0.0.1:8000/documents")
-      .then((res) => res.json())
-      .then((data) => setDocuments(data.documents || []))
-      .catch(() => setDocuments([]));
+        /* ---------------- TENDERS ---------------- */
 
-    fetch("http://127.0.0.1:8000/verification-results")
-      .then((res) => res.json())
-      .then((data) =>
-        setVerificationResults(
-          data.verification_results || []
-        )
-      )
-      .catch(() => setVerificationResults([]));
+        if (tendersResponse.ok) {
+          const tenderData =
+            await tendersResponse.json();
+
+          setTenders(
+            tenderData.tenders || []
+          );
+
+          /* ---------------- TENDER ITEMS ---------------- */
+
+          const allTenders =
+            tenderData.tenders || [];
+
+          const itemResults =
+            await Promise.all(
+              allTenders.map(
+                async (tender: any) => {
+                  try {
+                    const response =
+                      await fetch(
+                        `${API}/tenders/${tender.id}/items`
+                      );
+
+                    if (!response.ok) {
+                      return {
+                        id: tender.id,
+                        items: [],
+                      };
+                    }
+
+                    const data =
+                      await response.json();
+
+                    return {
+                      id: tender.id,
+                      items: data.items || [],
+                    };
+                  } catch {
+                    return {
+                      id: tender.id,
+                      items: [],
+                    };
+                  }
+                }
+              )
+            );
+
+          const itemMap: Record<
+            number,
+            any[]
+          > = {};
+
+          itemResults.forEach(
+            (result) => {
+              itemMap[result.id] =
+                result.items;
+            }
+          );
+
+          setTenderItems(itemMap);
+        }
+
+        /* ---------------- PROFILE ---------------- */
+
+        if (profileResponse.ok) {
+          const profileData =
+            await profileResponse.json();
+
+          setProfile(
+            profileData.profile || null
+          );
+        }
+
+        /* ---------------- DOCUMENTS ---------------- */
+
+        if (documentsResponse.ok) {
+          const documentData =
+            await documentsResponse.json();
+
+          setDocuments(
+            documentData.documents || []
+          );
+        }
+
+        /* ---------------- VERIFICATION ---------------- */
+
+        if (verificationResponse.ok) {
+          const verificationData =
+            await verificationResponse.json();
+
+          setVerificationResults(
+            verificationData.verification_results ||
+              []
+          );
+        }
+
+        /* ---------------- MY BIDS ---------------- */
+
+        if (bidsResponse.ok) {
+          const bidData =
+            await bidsResponse.json();
+
+          setBids(
+            bidData.submissions || []
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Dashboard loading error:",
+          error
+        );
+
+        setTenders([]);
+        setProfile(null);
+        setTenderItems({});
+        setDocuments([]);
+        setVerificationResults([]);
+        setBids([]);
+      }
+    };
+
+    loadDashboardData();
   }, []);
 
-  const validDocuments = verificationResults.filter(
-    (item) =>
-      item.verification_status === "VALID"
-  ).length;
+  /* ==================================================
+     DOCUMENT / COMPLIANCE CALCULATIONS
+     ================================================== */
 
-  const reviewDocuments = verificationResults.filter(
-    (item) =>
-      item.verification_status === "NEEDS_REVIEW"
-  ).length;
+  const validDocuments =
+    verificationResults.filter(
+      (item) =>
+        item.verification_status ===
+        "VALID"
+    ).length;
 
-  const issueDocuments = verificationResults.filter(
-    (item) =>
-      item.verification_status === "INVALID"
-  ).length;
+  const reviewDocuments =
+    verificationResults.filter(
+      (item) =>
+        item.verification_status ===
+        "NEEDS_REVIEW"
+    ).length;
+
+  const issueDocuments =
+    verificationResults.filter(
+      (item) =>
+        item.verification_status ===
+        "INVALID"
+    ).length;
 
   const totalVerification =
     verificationResults.length;
@@ -54,13 +206,274 @@ const BidderDashboard = ({
   const complianceScore =
     totalVerification > 0
       ? Math.round(
-          (validDocuments / totalVerification) * 100
+          (validDocuments /
+            totalVerification) *
+            100
         )
       : 0;
 
-  const openTenders = tenders.filter(
-    (tender) => tender.status === "OPEN"
-  );
+  /* ==================================================
+     RELEVANCE ENGINE
+     ================================================== */
+
+  const normalise = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const relatedTerms: Record<
+    string,
+    string[]
+  > = {
+    "desktop computers": [
+      "desktop computer",
+      "desktop computers",
+      "desktop",
+      "computer",
+      "computers",
+      "pc",
+      "pcs",
+    ],
+
+    laptops: [
+      "laptop",
+      "laptops",
+      "notebook",
+      "notebooks",
+    ],
+
+    printers: [
+      "printer",
+      "printers",
+      "laser printer",
+      "inkjet printer",
+      "multifunction printer",
+      "mfp",
+    ],
+
+    servers: [
+      "server",
+      "servers",
+      "rack server",
+      "tower server",
+    ],
+
+    "networking equipment": [
+      "network",
+      "networking",
+      "network equipment",
+      "networking equipment",
+      "network switch",
+      "switch",
+      "router",
+      "routers",
+      "ethernet",
+      "firewall",
+    ],
+
+    ups: [
+      "ups",
+      "online ups",
+      "offline ups",
+      "uninterruptible power supply",
+      "power backup",
+    ],
+
+    "office furniture": [
+      "office furniture",
+      "workstation",
+      "workstation desk",
+      "office workstation desk",
+      "office chair",
+      "chair",
+      "desk",
+      "table",
+    ],
+  };
+
+  const calculateRelevanceScore = (
+    tender: any
+  ) => {
+    if (!profile) {
+      return 0;
+    }
+
+    const profileProducts =
+      String(
+        profile.products_services || ""
+      )
+        .split(/[,;|]/)
+        .map((item) =>
+          normalise(item)
+        )
+        .filter(Boolean);
+
+    const primaryTrade =
+      normalise(
+        profile.primary_trade || ""
+      );
+
+    const tenderItemList =
+      tenderItems[tender.id] || [];
+
+    const tenderText = normalise(
+      [
+        tender.title || "",
+        tender.description || "",
+        tender.department || "",
+        tender.procurement_category ||
+          "",
+        ...tenderItemList.flatMap(
+          (item: any) => [
+            item.item_name || "",
+            item.description || "",
+            item.material || "",
+            ...(item.mandatory_requirements ||
+              []),
+          ]
+        ),
+      ].join(" ")
+    );
+
+    if (!tenderText) {
+      return 0;
+    }
+
+    let score = 0;
+
+    /* -----------------------------------------------
+       PRIMARY TRADE
+       ----------------------------------------------- */
+
+    if (
+      primaryTrade &&
+      tenderText.includes(primaryTrade)
+    ) {
+      score += 25;
+    }
+
+    /* -----------------------------------------------
+       PRODUCTS / SERVICES
+       ----------------------------------------------- */
+
+    profileProducts.forEach(
+      (product) => {
+        /* Exact match */
+
+        if (
+          tenderText.includes(product)
+        ) {
+          score += 15;
+          return;
+        }
+
+        /* Related match */
+
+        const aliases =
+          relatedTerms[product] || [];
+
+        const relatedMatch =
+          aliases.some(
+            (alias) =>
+              tenderText.includes(
+                normalise(alias)
+              )
+          );
+
+        if (relatedMatch) {
+          score += 15;
+        }
+      }
+    );
+
+    /* -----------------------------------------------
+       IT HARDWARE CATEGORY
+       ----------------------------------------------- */
+
+    if (
+      primaryTrade.includes(
+        "it hardware"
+      )
+    ) {
+      const itKeywords = [
+        "computer",
+        "desktop",
+        "laptop",
+        "printer",
+        "server",
+        "network",
+        "switch",
+        "router",
+        "ethernet",
+        "ups",
+        "power backup",
+      ];
+
+      const categoryMatches =
+        itKeywords.filter(
+          (keyword) =>
+            tenderText.includes(keyword)
+        );
+
+      if (
+        categoryMatches.length > 0
+      ) {
+        score += Math.min(
+          categoryMatches.length * 5,
+          20
+        );
+      }
+    }
+
+    /* -----------------------------------------------
+       BUSINESS TYPE
+       ----------------------------------------------- */
+
+    const businessType =
+      normalise(
+        profile.business_type || ""
+      );
+
+    if (
+      businessType &&
+      tenderText.includes(
+        businessType
+      )
+    ) {
+      score += 10;
+    }
+
+    return Math.min(score, 100);
+  };
+
+  /* ==================================================
+     RELEVANT OPEN TENDERS
+     ================================================== */
+
+  const relevantOpenTenders =
+    tenders
+      .filter(
+        (tender) =>
+          tender.status === "OPEN"
+      )
+      .map((tender) => ({
+        ...tender,
+        relevanceScore:
+          calculateRelevanceScore(
+            tender
+          ),
+      }))
+      .filter(
+        (tender) =>
+          tender.relevanceScore >= 25
+      )
+      .sort(
+        (a, b) =>
+          b.relevanceScore -
+          a.relevanceScore
+      );
 
   return (
     <div className="min-h-screen space-y-6 pb-10">
@@ -129,11 +542,11 @@ const BidderDashboard = ({
           </p>
 
           <p className="mt-1 text-3xl font-bold text-slate-950">
-            {openTenders.length}
+            {relevantOpenTenders.length}
           </p>
 
           <p className="mt-1 text-xs text-slate-400">
-            New opportunities open for bidding
+            Relevant opportunities open for bidding
           </p>
 
         </div>
@@ -160,7 +573,7 @@ const BidderDashboard = ({
           </p>
 
           <p className="mt-1 text-3xl font-bold text-slate-950">
-            0
+            {bids.length}
           </p>
 
           <p className="mt-1 text-xs text-slate-400">
@@ -325,7 +738,9 @@ const BidderDashboard = ({
 
             <button
               onClick={() =>
-                setActivePage("VerificationStatus")
+                setActivePage(
+                  "VerificationStatus"
+                )
               }
               className="text-xs font-semibold text-blue-600 hover:text-blue-700"
             >
@@ -414,7 +829,9 @@ const BidderDashboard = ({
             <p className="text-xs font-bold text-amber-800">
               {issueDocuments > 0
                 ? `${issueDocuments} document${
-                    issueDocuments > 1 ? "s" : ""
+                    issueDocuments > 1
+                      ? "s"
+                      : ""
                   } require attention`
                 : "Document verification status"}
             </p>
@@ -450,7 +867,9 @@ const BidderDashboard = ({
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
 
           <button
-            onClick={() => setActivePage("MyTenders")}
+            onClick={() =>
+              setActivePage("MyTenders")
+            }
             className="group flex items-center gap-4 rounded-xl border border-slate-200 p-4 text-left transition hover:border-blue-200 hover:bg-blue-50"
           >
 
@@ -478,7 +897,11 @@ const BidderDashboard = ({
 
 
           <button
-            onClick={() => setActivePage("UploadDocuments")}
+            onClick={() =>
+              setActivePage(
+                "UploadDocuments"
+              )
+            }
             className="group flex items-center gap-4 rounded-xl border border-slate-200 p-4 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
           >
 
@@ -506,7 +929,9 @@ const BidderDashboard = ({
 
 
           <button
-            onClick={() => setActivePage("MyBids")}
+            onClick={() =>
+              setActivePage("MyBids")
+            }
             className="group flex items-center gap-4 rounded-xl border border-slate-200 p-4 text-left transition hover:border-violet-200 hover:bg-violet-50"
           >
 
@@ -535,7 +960,9 @@ const BidderDashboard = ({
 
           <button
             onClick={() =>
-              setActivePage("VerificationStatus")
+              setActivePage(
+                "VerificationStatus"
+              )
             }
             className="group flex items-center gap-4 rounded-xl border border-slate-200 p-4 text-left transition hover:border-amber-200 hover:bg-amber-50"
           >
@@ -576,26 +1003,29 @@ const BidderDashboard = ({
           <div>
 
             <h2 className="text-lg font-bold text-slate-950">
-              Recent Tenders
+              Relevant Recent Tenders
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Latest procurement opportunities.
+              Latest procurement opportunities matching your organization.
             </p>
 
           </div>
 
-          <button
-            onClick={() => setActivePage("MyTenders")}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-          >
-            View All →
-          </button>
+<button
+  onClick={() =>
+    setActivePage("MyTenders")
+  }
+  className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+>
+  View All →
+</button>
 
         </div>
 
 
-        {openTenders.length === 0 ? (
+        {relevantOpenTenders.length ===
+        0 ? (
 
           <div className="px-6 py-12 text-center">
 
@@ -604,11 +1034,11 @@ const BidderDashboard = ({
             </div>
 
             <p className="mt-3 text-sm font-semibold text-slate-700">
-              No open tenders
+              No relevant open tenders
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
-              New procurement opportunities will appear here.
+              New matching procurement opportunities will appear here.
             </p>
 
           </div>
@@ -617,7 +1047,7 @@ const BidderDashboard = ({
 
           <div className="overflow-x-auto">
 
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-[750px]">
 
               <thead className="bg-slate-50">
 
@@ -636,6 +1066,10 @@ const BidderDashboard = ({
                   </th>
 
                   <th className="px-6 py-3">
+                    Match
+                  </th>
+
+                  <th className="px-6 py-3">
                     Status
                   </th>
 
@@ -649,55 +1083,90 @@ const BidderDashboard = ({
 
               <tbody className="divide-y divide-slate-100">
 
-                {openTenders.slice(0, 5).map(
-                  (tender, index) => (
+                {relevantOpenTenders
+                  .slice(0, 5)
+                  .map(
+                    (
+                      tender,
+                      index
+                    ) => (
 
-                    <tr
-                      key={tender.id ?? index}
-                      className="transition hover:bg-slate-50"
-                    >
+                      <tr
+                        key={
+                          tender.id ??
+                          index
+                        }
+                        className="transition hover:bg-slate-50"
+                      >
 
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">
-                        {tender.tender_number}
-                      </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-700">
+                          {tender.tender_number ||
+                            "—"}
+                        </td>
 
-                      <td className="px-6 py-4">
+                        <td className="px-6 py-4">
 
-                        <p className="text-sm font-medium text-slate-800">
-                          {tender.title}
-                        </p>
+                          <p className="text-sm font-medium text-slate-800">
+                            {tender.title ||
+                              "Untitled Tender"}
+                          </p>
 
-                      </td>
+                          {tender.description && (
+                            <p className="mt-1 max-w-md text-xs text-slate-400">
+                              {tender.description}
+                            </p>
+                          )}
 
-                      <td className="px-6 py-4 text-sm text-slate-500">
-                        {tender.submission_deadline || "—"}
-                      </td>
+                        </td>
 
-                      <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-sm text-slate-500">
+                          {formatDate(
+                            tender.submission_deadline
+                          )}
+                        </td>
 
-                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
-                          OPEN
-                        </span>
+                        <td className="px-6 py-4">
 
-                      </td>
+                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-600">
+                            {tender.relevanceScore}%
+                          </span>
 
-                      <td className="px-6 py-4">
+                        </td>
 
-                        <button
-                          onClick={() =>
-                            setActivePage("MyTenders")
-                          }
-                          className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
-                        >
-                          View
-                        </button>
+                        <td className="px-6 py-4">
 
-                      </td>
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                            OPEN
+                          </span>
 
-                    </tr>
+                        </td>
 
-                  )
-                )}
+                        <td className="px-6 py-4">
+
+                          <button
+                            onClick={() => {
+                              sessionStorage.setItem(
+                                "selectedTenderId",
+                                String(
+                                  tender.id
+                                )
+                              );
+
+                              setActivePage(
+                                "Tender Details"
+                              );
+                            }}
+                            className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                          >
+                            View
+                          </button>
+
+                        </td>
+
+                      </tr>
+
+                    )
+                  )}
 
               </tbody>
 
@@ -712,5 +1181,40 @@ const BidderDashboard = ({
     </div>
   );
 };
+
+
+/* ==================================================
+   DATE FORMATTER
+   ================================================== */
+
+function formatDate(
+  value?: string
+) {
+  if (!value) {
+    return "—";
+  }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
+  return date.toLocaleString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }
+  );
+}
 
 export default BidderDashboard;

@@ -7,13 +7,17 @@ import Documents from "./pages/officer/Documents";
 import Verification from "./pages/officer/Verification";
 import Reports from "./pages/officer/Reports";
 import ProfileSettings from "./pages/officer/ProfileSettings";
+import OfficerBidReview from "./pages/officer/OfficerBidReview";
 
 import BidderDashboard from "./pages/bidder/BidderDashboard";
 import MyTenders from "./pages/bidder/MyTenders";
 import MyBids from "./pages/bidder/MyBids";
 import UploadDocuments from "./pages/bidder/UploadDocuments";
 import VerificationStatus from "./pages/bidder/VerificationStatus";
+import DocumentVault from "./pages/bidder/DocumentVault";
 import ProfileSettingsBidder from "./pages/bidder/ProfileSettingsBidder";
+import TenderDetails from "./pages/bidder/TenderDetails";
+import BidPreparation from "./pages/bidder/BidPreparation";
 
 import Login from "./auth/Login";
 import Register from "./auth/Register";
@@ -309,7 +313,50 @@ function App() {
             <VerificationStatus
               setActivePage={setActivePage}
             />
+          ) : role === "bidder" &&
+          activePage === "Document Vault" ? (        
+          <DocumentVault />
+)         : role === "bidder" &&
+          activePage === "Tender Details" ? (
+        
+<TenderDetails
+    tenderId={Number(
+      sessionStorage.getItem(
+        "selectedTenderId"
+      )
+    )}
 
+    onClose={() => {
+      setActivePage(
+        "MyTenders"
+      );
+    }}
+
+    onPrepareBid={(tenderId) => {
+      sessionStorage.setItem(
+        "selectedTenderId",
+        String(tenderId)
+      );
+
+setActivePage("Bid Preparation");
+    }}
+  />
+  ) : role === "bidder" &&
+  activePage === "Bid Preparation" ? (
+
+<BidPreparation
+  tenderId={Number(
+    sessionStorage.getItem(
+      "selectedTenderId"
+    )
+  )}
+  onClose={() => {
+    setActivePage("Tender Details");
+  }}
+  onSubmitted={() => {
+    setActivePage("MyBids");
+  }}
+/>
           ) : role === "bidder" &&
             activePage === "Profile & Settings" ? (
 
@@ -359,12 +406,7 @@ function App() {
           ) : role === "officer" &&
             activePage === "Documents" ? (
 
-            <Documents
-              documents={documents}
-              verificationResults={
-                verificationResults
-              }
-            />
+            <Documents/>
 
           ) : role === "officer" &&
             activePage === "Verification" ? (
@@ -382,6 +424,13 @@ function App() {
                 setSelectedBidderId
               }
             />
+
+          ) : role === "officer" &&
+            activePage === "Bid Review" ? (
+
+            <OfficerBidReview
+  setActivePage={setActivePage}
+/>
 
           ) : role === "officer" &&
             activePage === "Reports" ? (

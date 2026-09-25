@@ -13,6 +13,7 @@ const Sidebar = ({
     { name: "Dashboard", icon: "▦" },
     { name: "Tenders", icon: "◫" },
     { name: "Bidders", icon: "♙" },
+    { name: "Bid Review", icon: "▣" },
     { name: "Documents", icon: "▤" },
     { name: "Verification", icon: "✓" },
     { name: "Reports", icon: "▥" },
@@ -25,6 +26,7 @@ const Sidebar = ({
     { name: "MyBids", icon: "♙" },
     { name: "UploadDocuments", icon: "▤" },
     { name: "VerificationStatus", icon: "✓" },
+    { name: "Document Vault", icon: "▤" },
     { name: "Profile & Settings", icon: "⚙" },
   ];
 
