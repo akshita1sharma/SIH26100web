@@ -1,5 +1,6 @@
 import os
 from datetime import date
+from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -21,11 +22,26 @@ from ocr import (
 )
 from supabase import create_client, Client
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().with_name(".env"))
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise RuntimeError(
+        "SUPABASE_URL and SUPABASE_KEY must be configured in the backend environment."
+    )
+
+configured_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 app = FastAPI(title="SIH26100 GeM Compliance API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
+    allow_origins=configured_origins + [
         "http://localhost:5173",
         "http://127.0.0.1:5173"
     ],
@@ -33,9 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
 supabase: Client = create_client(
     SUPABASE_URL,
     SUPABASE_KEY

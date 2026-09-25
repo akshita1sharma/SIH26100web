@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 
+const API =
+  import.meta.env.VITE_API_URL ||
+  "http://127.0.0.1:8000";
+
 type VerificationStatusProps = {
   setActivePage: (page: string) => void;
 };
@@ -12,7 +16,7 @@ const VerificationStatus = ({
   const [selectedResult, setSelectedResult] = useState<any | null>(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/verification-results")
+    fetch(`${API}/verification-results`)
       .then((res) => res.json())
       .then((data) =>
         setResults(data.verification_results || [])

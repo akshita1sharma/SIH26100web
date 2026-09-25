@@ -1,5 +1,25 @@
 # React + TypeScript + Vite
 
+## Production API configuration
+
+The frontend calls the FastAPI service, which is responsible for all Supabase
+database access. Before building the published frontend, configure:
+
+```text
+VITE_API_URL=https://<deployed-backend-domain>
+```
+
+Configure the backend hosting service with:
+
+```text
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_KEY=<Supabase publishable-or-anon-key>
+CORS_ORIGINS=https://<deployed-frontend-domain>
+```
+
+See `.env.example` files in the frontend and backend directories for the
+required variable names. Do not commit real deployment secrets.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

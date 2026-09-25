@@ -6,7 +6,6 @@ type DashboardProps = {
   documents?: any[];
   verificationResults?: any[];
   setActivePage?: (page: string) => void;
-onLogout: () => void;
 };
 function Dashboard({
   tenders: propTenders = [],
@@ -409,8 +408,11 @@ function Dashboard({
                 Profile & Settings
               </button>
 <button
-  onClick={onLogout}
-  className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+  onClick={() => {
+    localStorage.removeItem("gem_verify_current_user");
+    localStorage.removeItem("gem_verify_remember");
+    window.location.reload();
+  }}
 >
   Logout
 </button>
